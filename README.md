@@ -64,7 +64,7 @@ The following describes integration scope, not a certified board list. See the [
 | Serial terminal | 8N1, text/HEX TX/RX, CRLF, counters, receive-data export | Real I/O tested with system pseudoterminals, not a physical UART adapter |
 | Debugging / registers | OpenOCD + GDB; read-only common F1/G4 register tables | Live target debugging not revalidated; not a complete SVD database |
 | Projects / source organization | CubeMX, CMake, ARM GCC, VS Code configuration; source/include synchronization | Temporary C project configured, built, and executed after organization; custom layouts need review |
-| Automated checks | Programming and CMake checks, process safeguards, log delivery, localization, original self-test | All passed locally; see the validation record for details. Self-test requires local CubeMX/F1/G4 packages; remote GitHub CI not confirmed |
+| Automated checks | Programming and CMake checks, process safeguards, log delivery, localization, original self-test | Local checks and macOS 15 GitHub CI passed; see the validation record. Self-test requires local CubeMX/F1/G4 packages and runs locally only |
 
 The MCU catalog comes from the local CubeMX database. A listed MCU is not necessarily tested or supported by the selected backend. Manual family/model entry is available when the database is absent.
 
