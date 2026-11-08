@@ -164,16 +164,9 @@ There are no register-write controls, but reads can still clear flags or change 
 
 ## 10. Organize Source Files
 
-1. **Make a separate project backup first.** Check that the project root has `CMakeLists.txt`.
-2. Put user files in `Core/Src` and `Core/Inc`, for example `bsp_led.c` and `bsp_led.h`.
-3. Run source organization. On success, files move into prefix-based folders and CMake references are updated.
-4. Review the changes and build again.
+This experimental module is hidden in v0.3.0-beta.1, including the sidebar reorder dialog. Its implementation and tests remain in the source repository. Operation previews, undo, and complex project layouts need further work before the UI is re-enabled.
 
-For example, `bsp_led.c` moves to `Core/Src/bsp_c/`; its header moves to `Core/Inc/bsp_h/`. Supported prefixes are `bsp`, `app`, `driver`, `drv`, `middleware`, and `service`.
-
-**If there is a conflict:** read the reported path. An existing destination file or a file occupying a required directory stops the operation. Do not overwrite blindly. If build files are missing, run Generate Project first.
-
-The app updates standard paths and writes `cmake/stm32studio-user-files.cmake`. Repeating the operation resynchronizes it. Custom CMake expressions still need review. Automatic backups are in `.stm32studio/backups/`; keep your separate backup too.
+Project import, CMake configuration, builds, and Organize Project remain available in Projects & Build. Existing user files and previously generated CMake fragments are not removed by this update.
 
 <a id="9-tools-profiles-and-logs"></a>
 
@@ -186,7 +179,7 @@ The app updates standard paths and writes `cmake/stm32studio-user-files.cmake`. 
 
 Settings are separate from the former app at `~/Library/Application Support/SCMXBuildWork/settings.json`.
 
-The local programming suite passed 137 assertions. Process, log, language-resource checks, and the original self-test also passed. English and Chinese each have 386 matching string keys. These results do not certify boards, remote CI, or every visual UI state.
+The local programming suite passed 137 assertions. Process, log, language-resource checks, and the original self-test also passed. English and Chinese string keys match. These results do not certify boards, remote CI, or every visual UI state.
 
 The log view and text export retain the latest 150,000 to 180,000 UTF-16 units, not the full history. Save important errors before older output is discarded. Serial ports are selected manually; the app refreshes the list every three seconds without opening each port to search for a device.
 

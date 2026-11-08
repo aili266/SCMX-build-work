@@ -60,7 +60,7 @@ struct Settings: Codable {
     var outputDirectory = ""
     var followBuildOutputs = true
     var expectedFirmwareHash = ""
-    var navigationOrder = [0, 4, 5, 6, 1, 2, 3]
+    var navigationOrder = [0, 4, 5, 1, 2, 3]
     var programmerBackend = "OpenOCD"
     var cubeProgrammer = ""
     var programmerTransport = "SWD"

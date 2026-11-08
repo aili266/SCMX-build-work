@@ -8,11 +8,11 @@ struct NavigationItem: Identifiable, Hashable {
     let icon: String
 }
 
+// Code organization is retained in source but not exposed in this beta.
 let navigationCatalog = [
     NavigationItem(id:0,title:"Flashing",icon:"cable.connector"),
     NavigationItem(id:4,title:"Debug",icon:"ant"),
     NavigationItem(id:5,title:"Register Assistant",icon:"list.bullet.rectangle"),
-    NavigationItem(id:6,title:"Code Organization",icon:"folder.badge.gearshape"),
     NavigationItem(id:1,title:"Projects & Build",icon:"square.stack.3d.up"),
     NavigationItem(id:2,title:"Tools & Firmware Packs",icon:"wrench.and.screwdriver"),
     NavigationItem(id:3,title:"Run Log",icon:"terminal")
@@ -297,12 +297,12 @@ struct MainView: View {
             Divider()
             VStack(spacing:0) {
                 HStack {
-                    VStack(alignment:.leading,spacing:5) { Text(LocalizedStringKey(s.tab == 0 ? "SCMX-build work" : s.tab == 1 ? "Projects & Build" : s.tab == 2 ? "Tools & Firmware Packs" : s.tab == 4 ? "Live Debugging" : s.tab == 5 ? "Register Assistant" : s.tab == 6 ? "Code Organization" : "Run Log")).font(.system(size:25,weight:.bold)); Text(LocalizedStringKey(s.tab == 0 ? "Select a device and firmware, then connect and flash." : s.tab == 1 ? "CubeMX generation and ARM GCC builds" : s.tab == 2 ? "Local tools, MCU database, and firmware pack repository." : s.tab == 4 ? "Breakpoints, stepping, variables, and memory · GDB + OpenOCD" : s.tab == 5 ? "Read-only GPIO, USART, I2C, and SPI register inspection" : s.tab == 6 ? "Organize user C / H files by filename prefix." : "Live output and error details.")).foregroundStyle(.secondary) }
+                    VStack(alignment:.leading,spacing:5) { Text(LocalizedStringKey(s.tab == 0 ? "SCMX-build work" : s.tab == 1 ? "Projects & Build" : s.tab == 2 ? "Tools & Firmware Packs" : s.tab == 4 ? "Live Debugging" : s.tab == 5 ? "Register Assistant" : "Run Log")).font(.system(size:25,weight:.bold)); Text(LocalizedStringKey(s.tab == 0 ? "Select a device and firmware, then connect and flash." : s.tab == 1 ? "CubeMX generation and ARM GCC builds" : s.tab == 2 ? "Local tools, MCU database, and firmware pack repository." : s.tab == 4 ? "Breakpoints, stepping, variables, and memory · GDB + OpenOCD" : s.tab == 5 ? "Read-only GPIO, USART, I2C, and SPI register inspection" : "Live output and error details.")).foregroundStyle(.secondary) }
                     Spacer()
                     if s.busy { ProgressView().controlSize(.small); Button("Stop") { s.stop() } }
                 }.padding(24)
                 Divider()
-                if s.tab == 0 { flasherView } else if s.tab == 1 { projectView } else if s.tab == 2 { toolsView } else if s.tab == 4 { DebugView(studio:s,debug:s.debug).disabled(s.busy) } else if s.tab == 5 { RegisterView(studio:s,debug:s.debug).disabled(s.busy) } else if s.tab == 6 { organizeView } else { logView }
+                if s.tab == 0 { flasherView } else if s.tab == 1 { projectView } else if s.tab == 2 { toolsView } else if s.tab == 4 { DebugView(studio:s,debug:s.debug).disabled(s.busy) } else if s.tab == 5 { RegisterView(studio:s,debug:s.debug).disabled(s.busy) } else { logView }
                 Divider()
                 HStack { Image(systemName:s.busy ? "hourglass" : s.failed ? "xmark.circle.fill" : "checkmark.circle.fill").foregroundStyle(s.failed ? .red : s.busy ? .orange : .green); Text(LocalizedStringKey(s.status)).lineLimit(2).font(.callout); Spacer(); if !s.busy { Button("View Log") { s.tab = 3 }.buttonStyle(.link) } }.padding(14).background(Color(nsColor:.controlBackgroundColor))
             }
@@ -508,7 +508,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         updateLocalizedChrome()
         NotificationCenter.default.addObserver(self,selector:#selector(updateLocalizedChrome),name:LocalizationSettings.didChange,object:nil)
-        if let i = CommandLine.arguments.firstIndex(of:"--smoke-tab"), CommandLine.arguments.count > i+1 { studio.tab = Int(CommandLine.arguments[i+1]) ?? 0 }
+        if let i = CommandLine.arguments.firstIndex(of:"--smoke-tab"), CommandLine.arguments.count > i+1 {
+            let requested = Int(CommandLine.arguments[i+1]) ?? 0
+            studio.tab = navigationCatalog.contains(where:{$0.id == requested}) ? requested : 0
+        }
         let logStress = CommandLine.arguments.contains("--smoke-log-stress")
         if logStress {
             studio.log = ""
@@ -538,6 +541,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             DispatchQueue.main.asyncAfter(deadline:.now() + 2) {
                 var report = "interfaceLanguage=\(LocalizationSettings.shared.language.rawValue)\nlocalizedFlashing=\(L10n.string("Flashing"))\nwindowVisible=\(w.isVisible)\nwindowTitle=\(w.title)\ncontentView=\(String(describing:type(of:w.contentView!)))\nsize=\(w.contentView!.bounds.size)\nprojects=\(self.studio.projects.count)\n"
                 report += "workspace=\(self.studio.settings.root)\nseries=\(self.studio.settings.series)\nproject=\(self.studio.settings.project)\nchipFamily=\(self.studio.settings.chipFamily)\nchipModel=\(self.studio.settings.chipModel)\nfirmware=\(self.studio.settings.firmware)\nregisterDevices=\(RegisterCatalog.devices.count)\nregisterProfiles=\(RegisterCatalog.allProfiles.count)\n"
+                report += "navigationIDs=\(self.studio.navigationItems.map(\.id))\nselectedTab=\(self.studio.tab)\n"
                 if let snapshot = try? RegisterCatalog.snapshot(family:self.studio.settings.chipFamily,model:self.studio.settings.chipModel) {
                     report += "registerProfile=\(snapshot.profile.name)\nregisterCount=\(snapshot.registers.count)\n"
                 }

@@ -4,7 +4,7 @@
 
 **English** | [简体中文](README.zh-CN.md)
 
-SCMX-build work is a macOS app for building and programming STM32 firmware. It also has a serial terminal, GDB debugging, register inspection, and source-file organization. The app is built with SwiftUI and AppKit. It runs on its own; you do not need Xcode.
+SCMX-build work is a macOS app for building and programming STM32 firmware. It also has a serial terminal, GDB debugging, and register inspection. The app is built with SwiftUI and AppKit. It runs on its own; you do not need Xcode.
 
 ## What you can do
 
@@ -15,7 +15,6 @@ The app runs tools installed on your Mac. It is intended for learning and workin
 - Review commands and firmware details before programming; reuse connection profiles without exporting local tool or project paths.
 - Read Flash backups with length checks and overwrite protection; inspect option bytes without exposing security-changing controls.
 - Debug through OpenOCD and ARM GDB, browse bundled vendor register definitions by MCU, and communicate through a text/HEX serial terminal.
-- Organize prefixed user sources and synchronize standard CMake references, with backups and conflict checks.
 - Switch the UI between English and Simplified Chinese using the language selector at the bottom of the left sidebar or in Tools settings. External tool logs may retain their original language.
 
 ## Installation
@@ -26,7 +25,9 @@ Open `SCMX-build-work.app` in Finder. You need macOS 13 or later and a build for
 
 A new installation has no selected workspace, project, MCU, or firmware. Register definitions are bundled and can be browsed offline without a project or a connected board. Existing users keep their own saved selections after an update.
 
-There is no public app download yet. You can build the app from source using the steps below.
+Repository collaborators can download the Apple Silicon build from the [private v0.3.0-beta.1 release](https://github.com/aili266/SCMX-build-work/releases/tag/v0.3.0-beta.1). There is no public app download yet. You can also build the app from source using the steps below.
+
+The experimental Code Organization module is hidden in this beta. Its implementation and regression tests remain in the repository. Project import, CMake configuration, and project-directory normalization remain available.
 
 ### Build the app from source
 
@@ -67,7 +68,7 @@ The following describes integration scope, not a certified board list. See the [
 | Flash backup | Address/length validation, size check, no overwrite | Automated safeguards tested; physical-device reads pending |
 | Serial terminal | 8N1, text/HEX TX/RX, CRLF, counters, receive-data export | Real I/O tested with system pseudoterminals, not a physical UART adapter |
 | Debugging / registers | OpenOCD + GDB; bundled, model-matched vendor SVD register definitions | Definition browsing is offline; reading live values requires a matching halted target. Shared vendor profiles can include optional blocks; this is not hardware certification |
-| Projects / source organization | CubeMX, CMake, ARM GCC, VS Code configuration; source/include synchronization | Temporary C project configured, built, and executed after organization; custom layouts need review |
+| Projects / CMake | CubeMX, CMake, ARM GCC, VS Code configuration and project-directory normalization | Temporary CMake regressions passed; custom layouts need review. Experimental user-source organization is hidden |
 | Automated checks | Programming and CMake checks, process safeguards, log delivery, localization, original self-test | Local checks and macOS 15 GitHub CI passed; see the validation record. Self-test requires local CubeMX/F1/G4 packages and runs locally only |
 
 The MCU catalog combines bundled device-pack mappings with the local CubeMX database when available. The offline library contains 3,822 model/base-name entries across 30 families and 215 register profiles. A listed MCU is not necessarily tested or supported by the selected programming backend. Creating a project still requires that MCU's metadata and firmware package in CubeMX.
@@ -82,7 +83,6 @@ The MCU catalog combines bundled device-pack mappings with the local CubeMX data
 | Debugging | Load an ELF with debug symbols, pause, step, and inspect variables | [Debugging](docs/USER_GUIDE.en.md#8-debug-a-program) |
 | Register assistant | Select an MCU and browse its definitions; connect and pause to read live values | [Register assistant](docs/USER_GUIDE.en.md#9-read-registers) |
 | Projects and builds | Import or create a project, generate with CubeMX, and build | [Projects and builds](docs/USER_GUIDE.en.md#4-generate-and-build) |
-| Source organization | Sort user files by prefix and update their CMake paths | [Source organization](docs/USER_GUIDE.en.md#10-organize-source-files) |
 | Tools, profiles and logs | Choose tools, reuse connection settings, reorder modules, save logs | [Tools, profiles and logs](docs/USER_GUIDE.en.md#11-profiles-logs-and-help) |
 
 ## Tests

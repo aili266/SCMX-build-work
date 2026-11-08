@@ -4,11 +4,13 @@
 
 [English](README.md) | **简体中文** | [使用说明](docs/USER_GUIDE.md)
 
-SCMX-build work 是独立的 macOS App，用于编译和烧录 STM32，也能使用串口、调试程序和整理代码。**它不是 Xcode 扩展，运行时不需要 Xcode。**
+SCMX-build work 是独立的 macOS App，用于编译和烧录 STM32，也能使用串口、调试程序和查看寄存器。**它不是 Xcode 扩展，运行时不需要 Xcode。**
 
 ## 打开 App
 
 ### 已有构建好的 App
+
+仓库成员可以在[私有 v0.3.0-beta.1 发布页](https://github.com/aili266/SCMX-build-work/releases/tag/v0.3.0-beta.1)下载 Apple Silicon 版本。当前没有公开下载。
 
 1. 在 Finder 打开 `SCMX-build-work.app`。需要 macOS 13 或更新版本。
 2. 在左侧底部或 Tools 设置中选择简体中文。
@@ -67,13 +69,14 @@ Homebrew 可能要求 Command Line Tools 来安装软件包。这不是打包 Ap
 - **串口：**选端口和波特率后连接，可发文字或 HEX 字节。接收只保留最近 64 KiB。串口下载前先断开终端。
 - **调试、寄存器：**选择型号即可离线查看内置厂商寄存器定义，不必先建工程或连接开发板。读取实际值时再连接并暂停匹配的芯片；部分读取会清除标志。
 - **整理工程目录：**先备份。只有 `.ioc`、尚未生成构建文件的工程会被拒绝，需先点“生成工程”。
-- **整理代码：**先备份，再执行。遇到同名文件或目录冲突会中止；先检查报错路径，不要直接覆盖。
 - **擦除：**OpenOCD 只擦 Bank 0；CubeProgrammer 使用 `-e all` 全部擦除。看清确认框再执行。
 - **出错：**先看错误提示和日志。日志空白不代表成功。外部工具输出可能保留原语言。
 
 UART、USB DFU 需要芯片支持对应的系统下载方式，不能任意接线。本轮未实测开发板烧录、擦除、备份和在线调试，CubeProgrammer 实际 CLI 行为也待验证。
 
 暂不提供量产批量烧录、J-Link 专用界面、外部 Flash loader、SWO/RTT 或安全配置写入。多核、TrustZone、MP/Linux 和复杂自定义 CMake 工程需要单独检查。
+
+本次 Beta 隐藏“代码整理”入口，源码和测试保留，待补齐操作预览、撤销及复杂工程处理后再开放。工程导入、CMake 配置、编译和“整理工程目录”照常保留。
 
 ## 测试记录
 

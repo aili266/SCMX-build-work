@@ -35,6 +35,10 @@ func runStartupTests() throws {
     try expect(fresh.settings.firmware.isEmpty && fresh.settings.debugELF.isEmpty && fresh.settings.build.isEmpty,"First launch has no firmware or implicit build path")
     try expect(fresh.projects.isEmpty && fresh.artifact == nil,"First launch has no discovered project or firmware artifact")
     try expect(!exists(fresh.settings.repository),"First launch does not create a firmware repository")
+    try expect(!navigationCatalog.contains(where:{$0.id == 6}) && !fresh.navigationItems.contains(where:{$0.id == 6}),"Beta sidebar and reorder defaults exclude experimental code organization")
+    fresh.settings.navigationOrder = [6,3,5,0,4,1,2]
+    try expect(fresh.navigationItems.map(\.id) == [3,5,0,4,1,2],"Legacy sidebar order cannot restore the hidden experimental module")
+    try expect(fresh.settings.navigationOrder == [6,3,5,0,4,1,2],"Filtering hidden navigation leaves saved custom order intact")
     fresh.reloadCatalog()
     try expect(fresh.settings.chipModel.isEmpty && fresh.settings.chipFamily.isEmpty,"Reloading catalogs never selects the first MCU")
 
