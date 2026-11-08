@@ -1,5 +1,7 @@
 # SCMX-build work
 
+<img src="assets/app-icon.png" width="112" height="112" alt="SCMX-build work icon">
+
 [English](README.md) | **简体中文** | [使用说明](docs/USER_GUIDE.md)
 
 SCMX-build work 是独立的 macOS App，用于编译和烧录 STM32，也能使用串口、调试程序和整理代码。**它不是 Xcode 扩展，运行时不需要 Xcode。**

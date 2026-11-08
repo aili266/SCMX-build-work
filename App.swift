@@ -267,7 +267,7 @@ struct MainView: View {
     var body: some View {
         HStack(spacing:0) {
             VStack(alignment:.leading,spacing:22) {
-                HStack { Image(systemName:"cpu").font(.system(size:30)).foregroundStyle(.cyan); VStack(alignment:.leading) { Text("SCMX-build work").font(.headline).fixedSize(horizontal:false,vertical:true); Text("macOS Workbench").foregroundStyle(.secondary) } }.padding(.top,14)
+                HStack { Image(nsImage:NSImage(named:"SCMXBuildWork") ?? NSApp.applicationIconImage).resizable().interpolation(.high).scaledToFit().frame(width:40,height:40); VStack(alignment:.leading) { Text("SCMX-build work").font(.headline).fixedSize(horizontal:false,vertical:true); Text("macOS Workbench").foregroundStyle(.secondary) } }.padding(.top,14)
                 Text("Workbench").font(.caption).foregroundStyle(.secondary)
                 ForEach(s.navigationItems) { item in nav(item.title,item.icon,item.id) }
                 Spacer()

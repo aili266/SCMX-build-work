@@ -8,17 +8,19 @@ cp -R Resources/*.lproj "$DEST/Contents/Resources/"
 ICON_TMP="$(mktemp -d)"
 xcrun swiftc make-icon.swift -o "$ICON_TMP/make-icon" -framework AppKit
 "$ICON_TMP/make-icon" "$ICON_TMP/icon.png"
-for size in 16 32 128 256 512 1024; do sips -z "$size" "$size" "$ICON_TMP/icon.png" --out "$ICON_TMP/icon_${size}x${size}.png" >/dev/null; done
-mkdir -p "$ICON_TMP/STM32Burn.iconset"
-cp "$ICON_TMP/icon_16x16.png" "$ICON_TMP/STM32Burn.iconset/icon_16x16.png"
-cp "$ICON_TMP/icon_32x32.png" "$ICON_TMP/STM32Burn.iconset/icon_16x16@2x.png"
-cp "$ICON_TMP/icon_128x128.png" "$ICON_TMP/STM32Burn.iconset/icon_128x128.png"
-cp "$ICON_TMP/icon_256x256.png" "$ICON_TMP/STM32Burn.iconset/icon_128x128@2x.png"
-cp "$ICON_TMP/icon_256x256.png" "$ICON_TMP/STM32Burn.iconset/icon_256x256.png"
-cp "$ICON_TMP/icon_512x512.png" "$ICON_TMP/STM32Burn.iconset/icon_256x256@2x.png"
-cp "$ICON_TMP/icon_512x512.png" "$ICON_TMP/STM32Burn.iconset/icon_512x512.png"
-cp "$ICON_TMP/icon_1024x1024.png" "$ICON_TMP/STM32Burn.iconset/icon_512x512@2x.png"
-iconutil -c icns "$ICON_TMP/STM32Burn.iconset" -o "$DEST/Contents/Resources/STM32Burn.icns"
+for size in 16 32 64 128 256 512 1024; do sips -z "$size" "$size" "$ICON_TMP/icon.png" --out "$ICON_TMP/icon_${size}x${size}.png" >/dev/null; done
+mkdir -p "$ICON_TMP/SCMXBuildWork.iconset"
+cp "$ICON_TMP/icon_16x16.png" "$ICON_TMP/SCMXBuildWork.iconset/icon_16x16.png"
+cp "$ICON_TMP/icon_32x32.png" "$ICON_TMP/SCMXBuildWork.iconset/icon_16x16@2x.png"
+cp "$ICON_TMP/icon_32x32.png" "$ICON_TMP/SCMXBuildWork.iconset/icon_32x32.png"
+cp "$ICON_TMP/icon_64x64.png" "$ICON_TMP/SCMXBuildWork.iconset/icon_32x32@2x.png"
+cp "$ICON_TMP/icon_128x128.png" "$ICON_TMP/SCMXBuildWork.iconset/icon_128x128.png"
+cp "$ICON_TMP/icon_256x256.png" "$ICON_TMP/SCMXBuildWork.iconset/icon_128x128@2x.png"
+cp "$ICON_TMP/icon_256x256.png" "$ICON_TMP/SCMXBuildWork.iconset/icon_256x256.png"
+cp "$ICON_TMP/icon_512x512.png" "$ICON_TMP/SCMXBuildWork.iconset/icon_256x256@2x.png"
+cp "$ICON_TMP/icon_512x512.png" "$ICON_TMP/SCMXBuildWork.iconset/icon_512x512.png"
+cp "$ICON_TMP/icon_1024x1024.png" "$ICON_TMP/SCMXBuildWork.iconset/icon_512x512@2x.png"
+iconutil -c icns "$ICON_TMP/SCMXBuildWork.iconset" -o "$DEST/Contents/Resources/SCMXBuildWork.icns"
 rm -rf "$ICON_TMP"
 cat > "$DEST/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
@@ -28,11 +30,11 @@ cat > "$DEST/Contents/Info.plist" <<'PLIST'
 <key>CFBundleIdentifier</key><string>local.scmx.buildwork</string>
 <key>CFBundleName</key><string>SCMX-build work</string>
 <key>CFBundleDisplayName</key><string>SCMX-build work</string>
-<key>CFBundleIconFile</key><string>STM32Burn</string>
-<key>CFBundleIconName</key><string>STM32Burn</string>
+<key>CFBundleIconFile</key><string>SCMXBuildWork</string>
+<key>CFBundleIconName</key><string>SCMXBuildWork</string>
 <key>CFBundlePackageType</key><string>APPL</string>
 <key>CFBundleShortVersionString</key><string>0.3.0</string>
-<key>CFBundleVersion</key><string>1</string>
+<key>CFBundleVersion</key><string>2</string>
 <key>CFBundleDevelopmentRegion</key><string>en</string>
 <key>CFBundleLocalizations</key><array><string>en</string><string>zh-Hans</string></array>
 <key>LSMinimumSystemVersion</key><string>13.0</string>

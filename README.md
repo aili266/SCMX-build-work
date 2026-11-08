@@ -1,5 +1,7 @@
 # SCMX-build work
 
+<img src="assets/app-icon.png" width="112" height="112" alt="SCMX-build work icon">
+
 **English** | [简体中文](README.zh-CN.md)
 
 SCMX-build work is a macOS app for building and programming STM32 firmware. It also has a serial terminal, GDB debugging, register inspection, and source-file organization. The app is built with SwiftUI and AppKit. It runs on its own; you do not need Xcode.

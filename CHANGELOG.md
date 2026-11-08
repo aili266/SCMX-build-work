@@ -2,6 +2,7 @@
 
 ## 0.3.0 — SCMX-build work 私有审核预览版
 
+- 使用选定的银白底、终端与橙色下载器图标，更新 App 侧栏、桌面图标和 GitHub 首页；图标由 Swift/AppKit 代码生成。
 - 基于原 STM32 macOS 工具整理源码和模块说明，采用 SCMX-build work 名称与 MIT License。
 - 新增 English / 简体中文界面切换，英文项目首页及中英文模块说明。
 - 烧录页合并系列选择，直接选择 STM32F1、STM32G4 等芯片系列。
