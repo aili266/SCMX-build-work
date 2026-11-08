@@ -8,7 +8,7 @@ final class SerialTerminal: ObservableObject {
     @Published private(set) var received = Data()
     @Published private(set) var receivedCount = 0
     @Published private(set) var sentCount = 0
-    @Published var status = "未连接"
+    @Published var status = "Disconnected"
     private var descriptor: Int32 = -1
     private var source: DispatchSourceRead?
 
@@ -38,7 +38,7 @@ final class SerialTerminal: ObservableObject {
             guard process.terminationStatus == 0 else { throw StudioError(String(decoding:errors.fileHandleForReading.readDataToEndOfFile(),as:UTF8.self)) }
             // Apply exclusivity after stty has opened and configured the device.
             guard ioctl(fd,TIOCEXCL,0) == 0 else { throw StudioError("串口无法独占，请关闭其他串口程序") }
-            descriptor = fd; connected = true; status = "已连接 · 8N1"
+            descriptor = fd; connected = true; status = "Connected · 8N1"
             let input = DispatchSource.makeReadSource(fileDescriptor:fd,queue:.main)
             input.setEventHandler { [weak self] in self?.receive() }
             input.setCancelHandler { Darwin.close(fd) }
@@ -64,10 +64,10 @@ final class SerialTerminal: ObservableObject {
             let written = data.withUnsafeBytes { Darwin.write(descriptor,$0.baseAddress,data.count) }
             if written > 0 { sentCount += written }
             guard written == data.count else { throw StudioError("串口发送未完成，请检查连接后重试；已发送 \(max(0,written)) 字节。") }
-            status = "已发送 \(written) 字节"
+            status = L10n.format("Sent %lld bytes",written)
         } catch { status = error.localizedDescription }
     }
-    func disconnect() { connected = false; descriptor = -1; source?.cancel(); source = nil; status = "未连接" }
+    func disconnect() { connected = false; descriptor = -1; source?.cancel(); source = nil; status = "Disconnected" }
     func clear() { received = Data(); receivedCount = 0; sentCount = 0 }
     deinit { source?.cancel() }
 }
@@ -82,32 +82,32 @@ struct SerialTerminalView: View {
     var body: some View {
         VStack(alignment:.leading,spacing:12) {
             HStack {
-                Picker("串口",selection:$studio.settings.serialPort) {
-                    Text("请选择").tag("")
+                Picker("Serial Port",selection:$studio.settings.serialPort) {
+                    Text("Select a port").tag("")
                     ForEach(studio.serialDevices,id:\.port) { Text($0.port).tag($0.port) }
                 }.disabled(terminal.connected)
-                Picker("波特率",selection:$baud) { ForEach(["9600","19200","38400","57600","115200","230400"],id:\.self) { Text($0).tag($0) } }.frame(width:175).disabled(terminal.connected)
-                Button { studio.scanSerial() } label: { Image(systemName:"arrow.clockwise") }.help("刷新串口")
-                Button(terminal.connected ? "断开" : "连接") {
+                Picker("Baud Rate",selection:$baud) { ForEach(["9600","19200","38400","57600","115200","230400"],id:\.self) { Text($0).tag($0) } }.frame(width:175).disabled(terminal.connected)
+                Button { studio.scanSerial() } label: { Image(systemName:"arrow.clockwise") }.help("Refresh Serial Ports")
+                Button(LocalizedStringKey(terminal.connected ? "Disconnect" : "Connect")) {
                     if terminal.connected { terminal.disconnect() }
                     else { terminal.connect(port:studio.settings.serialPort,baud:baud) }
                 }.disabled(studio.busy)
             }
             HStack {
-                Toggle("HEX",isOn:$hex); Toggle("发送 CRLF",isOn:$newline).disabled(hex)
-                Spacer(); Text("RX \(terminal.receivedCount) / TX \(terminal.sentCount) 字节").font(.caption).foregroundStyle(.secondary)
-                Button { terminal.clear() } label: { Image(systemName:"trash") }.help("清空接收区")
-                Button { exportReceived() } label: { Image(systemName:"square.and.arrow.down") }.help("保存接收数据")
+                Toggle("HEX",isOn:$hex); Toggle("Append CRLF",isOn:$newline).disabled(hex)
+                Spacer(); Text("RX \(terminal.receivedCount) / TX \(terminal.sentCount) bytes").font(.caption).foregroundStyle(.secondary)
+                Button { terminal.clear() } label: { Image(systemName:"trash") }.help("Clear Received Data")
+                Button { exportReceived() } label: { Image(systemName:"square.and.arrow.down") }.help("Save Received Data")
             }
             ScrollView([.vertical,.horizontal]) {
                 Text(hex ? terminal.received.map { String(format:"%02X",$0) }.joined(separator:" ") : String(decoding:terminal.received,as:UTF8.self))
                     .font(.system(size:12,design:.monospaced)).textSelection(.enabled).frame(maxWidth:.infinity,alignment:.topLeading).padding(8)
             }.frame(height:180).background(Color(nsColor:.textBackgroundColor))
             HStack {
-                TextField(hex ? "01 A0 FF" : "发送内容",text:$outgoing).onSubmit { send() }
-                Button { send() } label: { Image(systemName:"paperplane") }.help("发送").disabled(!terminal.connected)
+                TextField(LocalizedStringKey(hex ? "01 A0 FF" : "Text to send"),text:$outgoing).onSubmit { send() }
+                Button { send() } label: { Image(systemName:"paperplane") }.help("Send").disabled(!terminal.connected)
             }
-            Text(terminal.status).font(.caption).foregroundStyle(.secondary)
+            Text(L10n.string(terminal.status)).font(.caption).foregroundStyle(.secondary)
         }
     }
     private func send() { terminal.send(outgoing,hex:hex,newline:newline) }

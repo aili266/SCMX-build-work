@@ -1,5 +1,23 @@
 import AppKit
-if CommandLine.arguments.contains("--programming-test") {
+if CommandLine.arguments.contains("--localization-test") {
+    do {
+        var tables = [String:[String:String]]()
+        for language in AppLanguage.allCases {
+            guard let resource = Bundle.main.url(forResource:"Localizable",withExtension:"strings",subdirectory:nil,localization:language.rawValue) else { throw StudioError("Missing language resource: \(language.rawValue)") }
+            let value = try PropertyListSerialization.propertyList(from:Data(contentsOf:resource),options:[],format:nil)
+            guard let strings = value as? [String:String], strings.count >= 150, strings.values.allSatisfy({ !$0.isEmpty }) else { throw StudioError("Invalid language table: \(language.rawValue)") }
+            tables[language.rawValue] = strings
+            print("PASS: \(language.rawValue) resource contains \(strings.count) nonempty entries")
+        }
+        guard let english = tables["en"], let chinese = tables["zh-Hans"], Set(english.keys) == Set(chinese.keys), english["Flashing"] == "Flashing", chinese["Flashing"] == "烧录工作台" else { throw StudioError("Language key or translation mismatch") }
+        print("PASS: English and Simplified Chinese keys match and navigation translations resolve")
+        exit(0)
+    } catch { print("FAIL: \(error)"); exit(1) }
+} else if CommandLine.arguments.contains("--log-test") {
+    do { try runLogBufferTests(); exit(0) } catch { print("FAIL: \(error)"); exit(1) }
+} else if CommandLine.arguments.contains("--runner-test") {
+    do { try runRunnerTests(); exit(0) } catch { print("FAIL: \(error)"); exit(1) }
+} else if CommandLine.arguments.contains("--programming-test") {
     do { try runProgrammingTests(); exit(0) } catch { print("FAIL: \(error)"); exit(1) }
 } else if CommandLine.arguments.contains("--self-test") {
     do { try runTests(); exit(0) } catch { print("FAIL: \(error)"); exit(1) }

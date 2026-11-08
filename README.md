@@ -1,91 +1,139 @@
 # SCMX-build work
 
-一个专门面向 MacBook 的 STM32 烧录软件，使用 SwiftUI / AppKit 构建原生 macOS 界面。将工程生成与编译、SWD / UART / USB DFU 下载、调试、寄存器查看和代码整理放在一个应用中。
+**English** | [简体中文](README.zh-CN.md)
 
-当前为私有仓库审核预览版，尚未发布公开 GitHub Release。支持范围取决于本机后端、芯片和探针，不能将型号列表等同于硬件实测清单。
+SCMX-build work is a macOS app for building and programming STM32 firmware. It also has a serial terminal, GDB debugging, register inspection, and source-file organization. The app is built with SwiftUI and AppKit. It runs on its own; you do not need Xcode.
 
-本项目采用 AI 辅助开发；功能、修复和兼容性以代码审查及实际测试结果为准。
+## What you can do
 
-## 目标与特点
+The app runs tools installed on your Mac. It is intended for learning and working with one device at a time, not production programming.
 
-SCMX-build work 面向希望在 MacBook 上完成 STM32 开发的学习者和开发者，减少手动配置工具路径、CMake、固件文件与调试器的重复操作。它沿用 CubeMX、ARM GCC、OpenOCD、GDB 和 CubeProgrammer 的能力，用中文原生界面衔接这些工具。
+- Generate and build CubeMX projects, then select ELF, HEX, or BIN artifacts for programming.
+- Use OpenOCD with ST-Link or CMSIS-DAP, or STM32CubeProgrammer with ST-Link SWD, UART, or USB DFU.
+- Review commands and firmware details before programming; reuse connection profiles without exporting local tool or project paths.
+- Read Flash backups with length checks and overwrite protection; inspect option bytes without exposing security-changing controls.
+- Debug through OpenOCD and ARM GDB, inspect selected F1/G4 peripheral registers, and communicate through a text/HEX serial terminal.
+- Organize prefixed user sources and synchronize standard CMake references, with backups and conflict checks.
+- Switch the UI between English and Simplified Chinese using the language selector at the bottom of the left sidebar or in Tools settings. External tool logs may retain their original language.
 
-工程生成、编译结果与固件文件可以关联；烧录前显示摘要，支持连接配置复用；失败时保留命令与输出。它适用于单设备开发、学习和调试，暂不定位为量产烧录系统。
+## Installation
 
-## 快速开始
+### Open a built app
 
-需要 macOS 13 或更新版本，以及 Xcode Command Line Tools。
+Open `SCMX-build-work.app` in Finder. You need macOS 13 or later and a build for your Mac's architecture. You do not need Xcode, Apple Command Line Tools, or a Swift compiler to run the app. Install the STM32 tools for the operations you plan to use.
+
+There is no public app download yet. You can build the app from source using the steps below.
+
+### Build the app from source
+
+To compile the app itself, install Apple Command Line Tools (`xcrun` / `swiftc`). You do not need the full Xcode IDE. Run these commands in the repository directory:
 
 ```sh
 xcode-select --install
-brew install cmake ninja open-ocd
 zsh build.command
 open dist/SCMX-build-work.app
 ```
 
-ARM GCC / GDB 请另外安装与宿主架构匹配的 `arm-none-eabi` 工具链。CubeMX 和 CubeProgrammer 从 ST 官方下载安装，应用不附带或重新分发这些软件。
+The build targets the current Mac architecture: arm64 on Apple Silicon or x86_64 on Intel. Only the Apple Silicon build has been locally validated; Intel is unverified. The preview uses an ad-hoc signature, not Developer ID signing or Apple notarization. Building from source does not require disabling macOS security globally.
 
-默认构建当前 Mac 的架构：Apple Silicon 上为 arm64，Intel 上为 x86_64。此预览版在 Apple Silicon 本机构建；Intel 硬件尚未验证。应用使用本地临时签名，没有 Developer ID 签名或 Apple 公证。
+### Install STM32 tools
 
-已有 ELF / HEX / BIN 时，可直接使用烧录页，不需要先创建工程。OpenOCD 烧录需要其支持的目标配置；UART / DFU 需要可用的 STM32CubeProgrammer CLI。
+STM32 firmware builds use ARM GCC, CMake, and Ninja. Use CubeMX to generate a project, OpenOCD or CubeProgrammer to program a device, and ARM GDB with OpenOCD to debug it. With Homebrew, you can install some of these tools with:
 
-## 功能
+```sh
+brew install cmake ninja open-ocd
+```
 
-| 模块 | 功能 |
-| --- | --- |
-| 烧录工作台 | OpenOCD + ST-Link / CMSIS-DAP；CubeProgrammer + ST-Link SWD / UART / USB DFU；烧录校验、仅校验、复位、擦除 |
-| 下载辅助 | 复位下连接、探针序列号、设备列表、命令预览、连接配置导入导出 |
-| 备份 | 按起始地址与字节数读取 BIN；完整性检查；拒绝覆盖已有文件 |
-| 串口终端 | 8N1，文本 / HEX 收发，CRLF，收发计数，保存接收数据 |
-| 调试 | OpenOCD + GDB，暂停/运行/单步、断点、栈帧、参数/局部变量、监视表达式和内存 |
-| 寄存器助手 | F1/G4 内置常用外设寄存器实例，只读，依赖已连接调试会话 |
-| 工程与编译 | CubeMX 工程导入、生成、目录整理、CMake + ARM GCC 构建、ELF/BIN/HEX 输出与 VS Code 配置 |
-| 代码整理 | 按 bsp/app/driver/drv/middleware/service 前缀归档，并同步 CMake 源文件与头文件目录 |
-| 工具与日志 | 工具发现、固件包选择、版本检查、操作输出、日志导出、侧栏排序 |
+Homebrew may need Apple Command Line Tools to install packages. The packaged app itself does not need them.
 
-详见 [各模块使用说明](docs/USER_GUIDE.md)、[功能对照与待完成项](docs/FEATURE_MATRIX.md)、[旧代码检查记录](docs/BUG_REVIEW.md) 和 [本地验证结果](docs/VALIDATION.md)。
+Install an `arm-none-eabi` GCC/GDB toolchain separately, matching your host architecture. Download [STM32CubeMX](https://www.st.com/en/development-tools/stm32cubemx.html) and [STM32CubeProgrammer](https://www.st.com/en/development-tools/stm32cubeprog.html) from ST when needed. **These external tools and ST firmware packages are not bundled or redistributed.** Their licenses apply independently.
 
-## 测试
+Open the tools and firmware packages module and select the actual executables. For UART/DFU, select `STM32_Programmer_CLI`, not its installer or enclosing `.app`. Existing firmware can be programmed without CubeMX or HAL firmware packages; project generation requires CubeMX and the appropriate extracted package.
+
+## Support and Validation Matrix
+
+The following describes integration scope, not a certified board list. See the [recorded local validation](docs/VALIDATION.md) (Chinese) for evidence.
+
+| Area | Current scope | Validation boundary |
+| --- | --- | --- |
+| macOS / architecture | macOS 13+; native host-architecture build | arm64 locally validated; x86_64 unverified |
+| OpenOCD / SWD | ST-Link and CMSIS-DAP; programming, verification, reset, Bank 0 erase | Requires a supported target `.cfg`; no physical-board regression in this review |
+| CubeProgrammer / SWD | ST-Link; device listing, programming, verification, full-chip erase, option-byte display | Command tests passed; actual CLI and target behavior remain unverified |
+| CubeProgrammer / UART / USB DFU | ROM bootloader command integration | Requires chip-specific bootloader support; hardware testing pending |
+| Flash backup | Address/length validation, size check, no overwrite | Automated safeguards tested; physical-device reads pending |
+| Serial terminal | 8N1, text/HEX TX/RX, CRLF, counters, receive-data export | Real I/O tested with system pseudoterminals, not a physical UART adapter |
+| Debugging / registers | OpenOCD + GDB; read-only common F1/G4 register tables | Live target debugging not revalidated; not a complete SVD database |
+| Projects / source organization | CubeMX, CMake, ARM GCC, VS Code configuration; source/include synchronization | Temporary C project configured, built, and executed after organization; custom layouts need review |
+| Automated checks | Programming and CMake checks, process safeguards, log delivery, localization, original self-test | All passed locally; see the validation record for details. Self-test requires local CubeMX/F1/G4 packages; remote GitHub CI not confirmed |
+
+The MCU catalog comes from the local CubeMX database. A listed MCU is not necessarily tested or supported by the selected backend. Manual family/model entry is available when the database is absent.
+
+## Module Workflows
+
+| Module | Typical use | Guide |
+| --- | --- | --- |
+| Programming workbench | Select the chip and connection, test it, then choose firmware and confirm | [Programming](docs/USER_GUIDE.en.md#5-program-firmware) |
+| Backup / option bytes | Save a BIN backup; read option bytes over CubeProgrammer SWD | [Backup and option bytes](docs/USER_GUIDE.en.md#6-read-a-backup-or-option-bytes) |
+| Serial terminal | Connect a port, send text or HEX bytes, save received data | [Serial terminal](docs/USER_GUIDE.en.md#7-use-the-serial-terminal) |
+| Debugging | Load an ELF with debug symbols, pause, step, and inspect variables | [Debugging](docs/USER_GUIDE.en.md#8-debug-a-program) |
+| Register assistant | Pause the chip and read peripheral registers | [Register assistant](docs/USER_GUIDE.en.md#9-read-registers) |
+| Projects and builds | Import or create a project, generate with CubeMX, and build | [Projects and builds](docs/USER_GUIDE.en.md#4-generate-and-build) |
+| Source organization | Sort user files by prefix and update their CMake paths | [Source organization](docs/USER_GUIDE.en.md#10-organize-source-files) |
+| Tools, profiles and logs | Choose tools, reuse connection settings, reorder modules, save logs | [Tools, profiles and logs](docs/USER_GUIDE.en.md#11-profiles-logs-and-help) |
+
+## Tests
 
 ```sh
 zsh build.command
 dist/SCMX-build-work.app/Contents/MacOS/STM32Studio --programming-test
+dist/SCMX-build-work.app/Contents/MacOS/STM32Studio --runner-test
+dist/SCMX-build-work.app/Contents/MacOS/STM32Studio --log-test
+dist/SCMX-build-work.app/Contents/MacOS/STM32Studio --localization-test
 ```
 
-上述测试不连接开发板：检查各接口命令、地址校验、固件变化保护、配置迁移、虚拟串口实际收发，以及代码整理后真实 CMake 构建。
+The bundle is named `SCMX-build-work.app`; its internal executable remains `STM32Studio`. The programming suite passed 137 assertions covering backend commands, addresses, firmware changes, profiles, serial I/O, CMake toolchain changes, and directory organization. Process and log tests also passed, including cancellation, timeouts, split UTF-8 characters, and repeated errors. Tests use temporary directories and do not program or erase connected boards. The process test compiles a small C fixture and needs Command Line Tools; normal app use does not.
 
-`--self-test` 是原有测试入口，包含本机 CubeMX 数据库和已安装 F1/G4 固件包断言，需要相应本地环境，不作为干净 CI 的必要条件。测试从临时目录运行，不整理真实用户工程，不烧录或擦除已连接开发板。
+Localization checks also passed for English and Simplified Chinese, with 386 matching keys in each language. This confirms string-key coverage, not exhaustive visual validation of every UI state.
 
-## 源码
+The original `--self-test` also passed in the recorded local environment. It checks the local CubeMX database and installed F1/G4 firmware packages, so it is not a prerequisite for a clean CI environment. Local success does not establish a successful GitHub Actions run.
 
-| 文件 | 责任 |
+## Limits and Safety
+
+- No physical-board programming, erase, Flash read, option-byte read, or live GDB debugging was performed in this review. STM32CubeProgrammer CLI was not found locally; its real responses still need testing.
+- OpenOCD erase affects **Bank 0 only**; CubeProgrammer erase uses **`-e all`**. Confirm the displayed scope before proceeding. Reads and verification may reset or halt the target; failures may leave it halted.
+- UART and DFU are not supported by every STM32. Check the exact device's bootloader documentation and wiring. A serial terminal and programmer cannot share the same port.
+- J-Link-specific integration, external Flash loaders, batch/multi-probe programming, SWO/RTT, CAN/I2C/SPI bootloaders, RDP changes, OTP programming, and security provisioning are outside this preview's scope.
+- Dual-bank, multicore, TrustZone, and MP/Linux workflows are not certified. Complex custom CMake expressions and nonstandard project layouts may require manual changes.
+- Debugging uses local port `3333`; close competing probe sessions. Register reads can have hardware side effects even though the UI provides no writes.
+- The log window and its text export keep only the latest 150,000 to 180,000 UTF-16 units. Command return values keep at most the last 4 MiB. Save relevant errors before older output is discarded.
+
+## Source Layout and Settings
+
+| File | Responsibility |
 | --- | --- |
-| App.swift | 主窗口、工程管理、工具设置、后台操作与日志 |
-| Engine.swift | 文件组织、CubeMX/CMake 流程、OpenOCD 基础命令和子进程执行 |
-| Programming.swift | 下载后端路由、参数校验、备份、配置与连接建议 |
-| ProgrammingView.swift | 下载、配置及备份界面 |
-| SerialTerminal.swift | macOS 串口传输与终端界面 |
-| DebugSession.swift | GDB/MI 会话与调试视图 |
-| RegisterCatalog.swift | 内置寄存器表与查询视图 |
-| DeviceCatalog.swift | CubeMX MCU 数据库、固件包与串口枚举 |
-| FirmwareArtifact.swift | 固件大小、修改时间和 SHA-256 |
-| Tests.swift / ProgrammingTests.swift | 原有环境测试和新增可移植回归测试 |
+| `App.swift` | Main window, projects, tool settings, background operations, logs |
+| `Localization.swift` / `Resources/` | UI language selection and persistence, localized string lookup, English and Simplified Chinese string resources |
+| `Engine.swift` | File organization, CubeMX/CMake workflow, basic OpenOCD commands |
+| `ProcessRunner.swift` / `RunnerTests.swift` | Bounded process output, cancellation, timeouts and process-group regression tests |
+| `LogView.swift` | Native text log display, bounded log delivery and log stress checks |
+| `Programming.swift` / `ProgrammingView.swift` | Backend routing, validation, backups, profiles, programming UI |
+| `SerialTerminal.swift` | macOS serial transport and terminal UI |
+| `DebugSession.swift` / `RegisterCatalog.swift` | GDB/MI sessions, debug UI, built-in register tables |
+| `DeviceCatalog.swift` / `FirmwareArtifact.swift` | CubeMX/device/package discovery; firmware metadata and SHA-256 |
+| `Tests.swift` / `ProgrammingTests.swift` | Original environment-dependent tests and added portable regressions |
 
-预览版设置单独保存在 `~/Library/Application Support/STM32WorkbenchPreview/settings.json`，不覆盖旧 App 的设置。导出的连接配置不包含工具绝对路径、工程路径和固件路径。
+Settings are saved separately at `~/Library/Application Support/SCMXBuildWork/settings.json`. On first launch, settings from the former app named `STM32工程配置` are used as defaults; subsequent saves do not overwrite the old app's settings. Exported connection profiles exclude tool, project, firmware and serial-port paths, and device serial numbers.
 
-## 外部项目与分发
+## Documentation and Help
 
-本应用调用已安装的工具，没有复制这些项目的实现：
+- [English User Guide](docs/USER_GUIDE.en.md) / [中文使用说明](docs/USER_GUIDE.md)
+- [English Troubleshooting and Support](docs/SUPPORT.en.md) / [中文故障排查](docs/SUPPORT.md)
+- [Feature matrix and outstanding work](docs/FEATURE_MATRIX.md), [code review and residual risks](docs/BUG_REVIEW.md), [local validation](docs/VALIDATION.md), and [changelog](CHANGELOG.md) (Chinese)
 
-- [OpenOCD](https://github.com/openocd-org/openocd)
-- [STM32CubeProgrammer](https://www.st.com/en/development-tools/stm32cubeprog.html) 与 [命令行文档](https://dev.st.com/stm32cube-docs/prog/2.23.0/en/docs/markup/CubeProg_Command_Lines.html)
-- [STM32CubeMX](https://www.st.com/en/development-tools/stm32cubemx.html)
-- [Arm GNU Toolchain](https://developer.arm.com/Tools%20and%20Software/GNU%20Toolchain)
+Repository collaborators can report issues in the [private repository issue tracker](https://github.com/aili266/SCMX-build-work/issues). Include environment, tool versions, exact device, reproduction steps, and redacted logs. There is no public support service, response-time commitment, or comprehensive hardware certification.
 
-可参考的同类项目：[stlink](https://github.com/stlink-org/stlink)、[pyOCD](https://github.com/pyocd/pyOCD)、[pystlink](https://github.com/pavelrevak/pystlink)、[QMK Toolbox](https://github.com/qmk/qmk_toolbox)、[RYCOM](https://github.com/rymcu/RYCOM)。这些链接是功能对照来源，不表示二进制兼容或测试背书。
+## External Tools and License
 
-## License 与帮助
+The application invokes installed tools, including [OpenOCD](https://github.com/openocd-org/openocd), [STM32CubeProgrammer](https://www.st.com/en/development-tools/stm32cubeprog.html), [STM32CubeMX](https://www.st.com/en/development-tools/stm32cubemx.html), and the [Arm GNU Toolchain](https://developer.arm.com/Tools%20and%20Software/GNU%20Toolchain). These links do not imply endorsement or validated binary compatibility.
 
-本项目原创代码采用 [MIT License](LICENSE)，允许使用、修改和分发，并要求保留版权和许可声明；软件按原样提供，不提供担保。第三方工具和固件包按各自许可证使用，MIT 不会改变它们的许可条件，也不表示可以重新分发 ST 安装包。
-
-安装和操作参见 [使用说明](docs/USER_GUIDE.md)；遇到问题参见 [故障排查与支持](docs/SUPPORT.md)。查看 [更新记录](CHANGELOG.md) 了解本次整合及旧代码修复。审核期间可在私有仓库 Issues 提交问题；未开放公开支持服务。
+Original project code is licensed under the [MIT License](LICENSE). Use, modification, and redistribution require retaining the copyright and permission notice; the software is provided as-is, without warranty. Third-party tools and firmware packages retain their own license terms. MIT does not authorize redistribution of ST installers or other third-party material.

@@ -122,46 +122,6 @@ struct Settings: Codable {
     }
 }
 
-final class Runner: @unchecked Sendable {
-    private let lock = NSLock()
-    private var process: Process?
-    private var stopped = false
-    private var deadlineReached = false
-    let log: (String) -> Void
-    init(log: @escaping (String)->Void) { self.log = log }
-    func cancel() { lock.lock(); stopped = true; let p = process; lock.unlock(); if let p, p.isRunning { p.terminate() } }
-    func check() throws { lock.lock(); let s = stopped; lock.unlock(); if s { throw StudioError("操作已停止。") } }
-    @discardableResult func run(_ exe: String, _ args: [String], cwd: String? = nil, env: [String:String]? = nil, timeout: Double = 600) throws -> String {
-        try check()
-        guard fm.isExecutableFile(atPath: exe) else { throw StudioError("工具不可执行或不存在：\(exe)。请在工具链页面重新选择。") }
-        log("› \(exe) \(args.map { $0.contains(" ") ? "\"\($0)\"" : $0 }.joined(separator: " "))\n")
-        let p = Process(), pipe = Pipe()
-        p.executableURL = URL(fileURLWithPath: exe); p.arguments = args; p.standardOutput = pipe; p.standardError = pipe; p.standardInput = FileHandle.nullDevice
-        if let cwd { p.currentDirectoryURL = URL(fileURLWithPath: cwd) }; p.environment = env
-        lock.lock()
-        if stopped { lock.unlock(); throw StudioError("操作已停止。") }
-        process = p; deadlineReached = false
-        do { try p.run() } catch { process = nil; lock.unlock(); throw error }
-        lock.unlock()
-        let timer = DispatchSource.makeTimerSource(queue: .global())
-        timer.schedule(deadline: .now() + timeout)
-        timer.setEventHandler {
-            self.lock.lock()
-            if self.process === p, p.isRunning { self.deadlineReached = true; p.terminate() }
-            self.lock.unlock()
-        }; timer.resume()
-        defer { timer.cancel(); lock.lock(); process = nil; lock.unlock() }
-        var data = Data()
-        while true { let chunk = pipe.fileHandleForReading.availableData; if chunk.isEmpty { break }; data.append(chunk); log(String(decoding: chunk, as: UTF8.self)) }
-        p.waitUntilExit(); try check()
-        lock.lock(); let timedOut = deadlineReached; lock.unlock()
-        if timedOut { throw StudioError("\(URL(fileURLWithPath:exe).lastPathComponent) 执行超时（\(Int(timeout)) 秒），请检查连接或工具状态。") }
-        let output = String(decoding: data, as: UTF8.self)
-        guard p.terminationStatus == 0 else { throw StudioError("\(URL(fileURLWithPath:exe).lastPathComponent) 执行失败（退出码 \(p.terminationStatus)）。\n\(String(output.suffix(1800)))") }
-        return output
-    }
-}
-
 struct Engine {
     let runner: Runner
     func ioc(_ project: String) throws -> String {
@@ -338,34 +298,6 @@ struct Engine {
         if !read(top).contains(marker) { try write(read(top) + "\n" + marker + "\n",top) }
         runner.log("已同步用户 C 文件与头文件目录到 CMake。\n")
     }
-    func generateCMakeInStaging(_ s: Settings) throws {
-        let stage = path(NSTemporaryDirectory(), "STM32Studio-CMake-" + UUID().uuidString)
-        try fm.createDirectory(atPath: stage, withIntermediateDirectories: true)
-        defer { try? fm.removeItem(atPath: stage) }
-        for name in children(s.project) where ![".stm32studio", ".vscode", "build"].contains(name) {
-            try fm.copyItem(atPath: path(s.project, name), toPath: path(stage, name))
-        }
-        var staged = s
-        staged.project = stage
-        staged.outputDirectory = ""
-        staged.toolchain = ""
-        staged.firmware = ""
-        try generate(staged)
-        try backup(s.project)
-        for name in ["CMakeLists.txt", "CMakePresets.json", "cmake"] {
-            let from = path(stage, name), to = path(s.project, name)
-            guard exists(from), !exists(to) else { continue }
-            try fm.copyItem(atPath: from, toPath: to)
-        }
-        for name in children(stage) where name.hasSuffix(".s") || name.hasSuffix(".ld") {
-            let from = path(stage, name), to = path(s.project, name)
-            guard exists(from), !exists(to) else { continue }
-            try fm.copyItem(atPath: from, toPath: to)
-        }
-        try normalizeToolchain(s.project)
-        try configureEditor(s)
-        runner.log("已在隔离副本中生成 CMake，并只复制 CMake 文件到原工程。\n")
-    }
     func organizeProject(_ s: Settings) throws {
         let root = s.project
         let nested = path(root,"Projects")
@@ -373,38 +305,30 @@ struct Engine {
             guard (try? ioc(root)) != nil else {
                 throw StudioError("当前工程没有 CMakeLists.txt，也没有可用的 .ioc 文件，无法整理。请先导入 CubeMX 工程。")
             }
-            runner.log("当前只有 .ioc，在隔离副本中生成 CMake 工程…\n")
-            try generateCMakeInStaging(s)
-            return
+            throw StudioError("当前工程缺少 CMakeLists.txt，不能仅凭 .ioc 或已有的部分 Core/Drivers 文件确认源码完整。整理不会生成或补写源码；请明确使用“生成工程”（Generate Project）生成完整工程后重试。未修改任何文件。")
         }
         guard !exists(path(root,"CMakeLists.txt")), exists(path(nested,"CMakeLists.txt")) else {
             runner.log("工程目录已经是根目录 CMake 结构，跳过整理。\n")
             try configureEditor(s)
             return
         }
+        let candidates = ["CMakeLists.txt", "CMakePresets.json", "cmake"] + children(nested).filter { $0.hasSuffix(".s") || $0.hasSuffix(".ld") }
+        let moves = candidates.filter { exists(path(nested,$0)) }
+        for name in moves {
+            let destination = path(root,name)
+            guard !exists(destination) else { throw StudioError("整理目标已存在，未移动任何文件：\(destination)") }
+        }
         try backup(root)
-        let files = ["CMakeLists.txt", "CMakePresets.json"]
-        for file in files {
-            let from = path(nested,file), to = path(root,file)
-            guard exists(from), !exists(to) else { continue }
-            try fm.moveItem(atPath:from,toPath:to)
-        }
-        let directories = ["cmake"]
-        for directory in directories {
-            let from = path(nested,directory), to = path(root,directory)
-            guard exists(from), !exists(to) else { continue }
-            try fm.moveItem(atPath:from,toPath:to)
-        }
-        for name in children(nested) where name.hasSuffix(".s") || name.hasSuffix(".ld") {
-            let from = path(nested,name), to = path(root,name)
-            guard !exists(to) else { continue }
-            try fm.moveItem(atPath:from,toPath:to)
+        for name in moves {
+            try fm.moveItem(atPath:path(nested,name),toPath:path(root,name))
         }
         let driverCMake = path(root,"cmake/stm32cubemx/CMakeLists.txt")
         if exists(driverCMake) {
             var text = read(driverCMake)
-            text = text.replacingOccurrences(of:"/../../../Core",with:"/../../Core")
-            text = text.replacingOccurrences(of:"/../../../Drivers",with:"/../../Drivers")
+            // All generated project-root paths move together, including middleware.
+            for anchor in ["${CMAKE_CURRENT_SOURCE_DIR}", "${CMAKE_CURRENT_LIST_DIR}"] {
+                text = text.replacingOccurrences(of:anchor + "/../../../",with:anchor + "/../../")
+            }
             try write(text,driverCMake)
         }
         try normalizeToolchain(root)
@@ -458,23 +382,58 @@ struct Engine {
         let dir = URL(fileURLWithPath:s.compiler).deletingLastPathComponent().path
         for tool in ["arm-none-eabi-g++","arm-none-eabi-objcopy","arm-none-eabi-size"] { guard fm.isExecutableFile(atPath:path(dir,tool)) else { throw StudioError("ARM 工具链不完整，缺少 \(tool)。") } }
     }
+    func configureBuild(_ s: Settings) throws {
+        let project = canonical(s.project), build = canonical(s.build)
+        guard (s.project as NSString).isAbsolutePath, (s.build as NSString).isAbsolutePath,
+              build != "/", build != project, !project.hasPrefix(build + "/"),
+              !exists(path(build,"CMakeLists.txt")) else {
+            throw StudioError("请使用独立的绝对路径构建目录，不能使用工程根目录、其上级目录或其他源码工程目录。未清除任何文件。")
+        }
+        try fm.createDirectory(atPath:s.build,withIntermediateDirectories:true)
+        let signature = buildSignature(s)
+        let sigPath = path(s.build,".toolchain-signature")
+        let cachePath = path(s.build,"CMakeCache.txt")
+        let needsConfigure = !exists(cachePath) || read(sigPath) != signature
+        guard needsConfigure else { return }
+        try runner.check()
+        // Preflight both entries and cache ownership before deleting either one.
+        var removable:[String] = []
+        for (name,type) in [("CMakeCache.txt",FileAttributeType.typeRegular),("CMakeFiles",FileAttributeType.typeDirectory)] {
+            let item = path(build,name)
+            guard exists(item) || (try? fm.destinationOfSymbolicLink(atPath:item)) != nil else { continue }
+            let attributes = try fm.attributesOfItem(atPath:item)
+            guard attributes[.type] as? FileAttributeType == type, canonical(item) == item else {
+                throw StudioError("构建缓存不是预期的普通文件/目录，或包含符号链接，未清除任何文件：\(item)。请选择新的独立构建目录。")
+            }
+            removable.append(item)
+        }
+        if !removable.isEmpty {
+            let cache = read(cachePath).components(separatedBy:.newlines)
+            func cacheValue(_ name:String) -> String? {
+                let prefix = name + ":INTERNAL="
+                return cache.first { $0.hasPrefix(prefix) }.map { String($0.dropFirst(prefix.count)) }
+            }
+            guard let source = cacheValue("CMAKE_HOME_DIRECTORY"), let output = cacheValue("CMAKE_CACHEFILE_DIR"),
+                  (source as NSString).isAbsolutePath, (output as NSString).isAbsolutePath,
+                  canonical(source) == project, canonical(output) == build else {
+                throw StudioError("无法确认 CMake 缓存属于当前工程及构建目录，未清除任何文件。请选择新的独立构建目录。")
+            }
+            for item in removable { try fm.removeItem(atPath:item) }
+        }
+        runner.log(removable.isEmpty ? "首次编译，配置 CMake…\n" : "检测到工具链或配置改变，已清除 CMakeCache.txt / CMakeFiles，重新配置 CMake…\n")
+        let tc = s.toolchain.isEmpty ? path(s.project,"cmake/gcc-arm-none-eabi.cmake") : s.toolchain
+        let bin = URL(fileURLWithPath:s.compiler).deletingLastPathComponent().path
+        _ = try runner.run(s.cmake,["-S",s.project,"-B",s.build,"-G","Ninja","-DCMAKE_MAKE_PROGRAM=\(s.ninja)","-DCMAKE_BUILD_TYPE=\(s.configuration)","-DCMAKE_TOOLCHAIN_FILE=\(tc)","-DCMAKE_C_COMPILER=\(s.compiler)","-DCMAKE_CXX_COMPILER=\(path(bin,"arm-none-eabi-g++"))","-DCMAKE_ASM_COMPILER=\(s.compiler)","-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"],cwd:s.project,env:s.environment)
+        try write(signature,sigPath)
+    }
     func build(_ s: Settings) throws -> [String] {
         try validateSeries(s)
         guard exists(path(s.project,"CMakeLists.txt")) else { throw StudioError("当前目录缺少 CMakeLists.txt，请先生成 CMake 工程。多核、TrustZone 或 MP 工程请导入对应 Cortex-M 子工程；Linux/设备树不能用 ARM GCC 直接编译。") }
         try validateCompiler(s)
         let tc = s.toolchain.isEmpty ? path(s.project,"cmake/gcc-arm-none-eabi.cmake") : s.toolchain
         guard exists(tc) else { throw StudioError("未找到 ARM CMake 工具链文件，请选择 gcc-arm-none-eabi.cmake。") }
-        try fm.createDirectory(atPath:s.build,withIntermediateDirectories:true)
-        let signature = buildSignature(s)
-        let sigPath = path(s.build,".toolchain-signature")
-        let cachePath = path(s.build,"CMakeCache.txt")
-        let needsConfigure = !exists(cachePath) || read(sigPath) != signature
+        try configureBuild(s)
         let bin = URL(fileURLWithPath:s.compiler).deletingLastPathComponent().path
-        if needsConfigure {
-            runner.log(exists(cachePath) ? "检测到工具链或配置改变，重新配置 CMake…\n" : "首次编译，配置 CMake…\n")
-            _ = try runner.run(s.cmake,["-S",s.project,"-B",s.build,"-G","Ninja","-DCMAKE_MAKE_PROGRAM=\(s.ninja)","-DCMAKE_BUILD_TYPE=\(s.configuration)","-DCMAKE_TOOLCHAIN_FILE=\(tc)","-DCMAKE_C_COMPILER=\(s.compiler)","-DCMAKE_CXX_COMPILER=\(path(bin,"arm-none-eabi-g++"))","-DCMAKE_ASM_COMPILER=\(s.compiler)","-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"],cwd:s.project,env:s.environment)
-            try write(signature,sigPath)
-        }
         _ = try runner.run(s.cmake,["--build",s.build,"--parallel","\(min(ProcessInfo.processInfo.activeProcessorCount,8))"],cwd:s.project,env:s.environment)
         let files = firmwareFiles(s.build)
         guard !files.isEmpty else { throw StudioError("编译命令完成，但未找到 .elf 固件。请检查工程的输出格式。") }

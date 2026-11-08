@@ -3,7 +3,8 @@ set -euo pipefail
 cd "${0:A:h}"
 DEST="${1:-$PWD/dist/SCMX-build-work.app}"
 mkdir -p "$DEST/Contents/MacOS" "$DEST/Contents/Resources"
-xcrun swiftc -swift-version 5 -O -target "$(uname -m)-apple-macosx13.0" Engine.swift DeviceCatalog.swift FirmwareArtifact.swift DebugSession.swift RegisterCatalog.swift Programming.swift ProgrammingView.swift SerialTerminal.swift App.swift Tests.swift ProgrammingTests.swift main.swift -o "$DEST/Contents/MacOS/STM32Studio" -framework SwiftUI -framework AppKit
+xcrun swiftc -swift-version 5 -O -target "$(uname -m)-apple-macosx13.0" Engine.swift ProcessRunner.swift DeviceCatalog.swift FirmwareArtifact.swift DebugSession.swift RegisterCatalog.swift Programming.swift ProgrammingView.swift SerialTerminal.swift Localization.swift LogView.swift App.swift Tests.swift ProgrammingTests.swift RunnerTests.swift main.swift -o "$DEST/Contents/MacOS/STM32Studio" -framework SwiftUI -framework AppKit
+cp -R Resources/*.lproj "$DEST/Contents/Resources/"
 ICON_TMP="$(mktemp -d)"
 xcrun swiftc make-icon.swift -o "$ICON_TMP/make-icon" -framework AppKit
 "$ICON_TMP/make-icon" "$ICON_TMP/icon.png"
@@ -24,18 +25,20 @@ cat > "$DEST/Contents/Info.plist" <<'PLIST'
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
 <key>CFBundleExecutable</key><string>STM32Studio</string>
-<key>CFBundleIdentifier</key><string>local.stm32.workbench.preview</string>
-<key>CFBundleName</key><string>SCMX-build-work</string>
-<key>CFBundleDisplayName</key><string>SCMX-build-work</string>
+<key>CFBundleIdentifier</key><string>local.scmx.buildwork</string>
+<key>CFBundleName</key><string>SCMX-build work</string>
+<key>CFBundleDisplayName</key><string>SCMX-build work</string>
 <key>CFBundleIconFile</key><string>STM32Burn</string>
 <key>CFBundleIconName</key><string>STM32Burn</string>
 <key>CFBundlePackageType</key><string>APPL</string>
 <key>CFBundleShortVersionString</key><string>0.3.0</string>
 <key>CFBundleVersion</key><string>1</string>
+<key>CFBundleDevelopmentRegion</key><string>en</string>
+<key>CFBundleLocalizations</key><array><string>en</string><string>zh-Hans</string></array>
 <key>LSMinimumSystemVersion</key><string>13.0</string>
 <key>NSHighResolutionCapable</key><true/>
 <key>NSPrincipalClass</key><string>NSApplication</string>
-<key>NSHumanReadableCopyright</key><string>本地免费工具 · 2026</string>
+<key>NSHumanReadableCopyright</key><string>Copyright 2026 aili266. MIT License.</string>
 </dict></plist>
 PLIST
 codesign --force --sign - "$DEST"
