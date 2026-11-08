@@ -8,6 +8,10 @@
 2. The default language is English. Choose English or Simplified Chinese at the bottom of the left sidebar or in Tools settings. The choice is saved.
 3. Once the main window opens, select the tools below.
 
+A fresh installation leaves the workspace, project, MCU, and firmware unselected. Tool discovery does not select a board or import the former app's history. Updating the app preserves this app's own saved settings.
+
+To browse register definitions, open Register Assistant and select an MCU. No CubeMX installation, project, or connected board is needed.
+
 This is a standalone native app, not an Xcode extension. Running the packaged app needs no Xcode, Swift compiler, or Apple Command Line Tools. Only building the app from Swift source needs Command Line Tools, not the full Xcode IDE. See [source-build instructions](../README.md#build-the-app-from-source).
 
 If the app will not open, read the system message and [support guide](SUPPORT.en.md). The preview is not notarized; do not disable system protections globally. Apple Silicon is locally validated; Intel is not. There is no public download. A local build exists for private review; a review artifact may be provided after CI validation.
@@ -46,7 +50,7 @@ Programming an existing file needs no CubeMX or firmware package. Warnings about
 
 **If it is missing:** check the overall directory, import directory, and location of the `.ioc` file.
 
-Choose STM32F1, STM32G4, or another family directly. The app handles internal Fseries/Gseries folders. Select the full chip model; the app can read it from the project's `.ioc`. If the local CubeMX database is unavailable, enter the family and model manually. A listed model is not proof of hardware testing.
+Choose STM32F1, STM32G4, or another family directly. The app handles internal Fseries/Gseries folders. Select the chip model; the app can also read it from the project's `.ioc`. The list combines bundled device-pack mappings with local CubeMX metadata. Project creation requires the selected model to be installed in CubeMX. A listed model is not proof of hardware testing.
 
 ## 4. Generate and Build
 
@@ -146,13 +150,15 @@ Disconnect debugging before other app operations; they are blocked while it is c
 
 ## 9. Read Registers
 
-1. Connect and pause the chip in Debugging.
-2. Open the register assistant. Filter by peripheral and instance, or search by name.
-3. Read the selected registers. On success, their values appear.
+1. Open Register Assistant and select the device family and MCU. The bundled definitions change with the selected model.
+2. Filter by peripheral and instance, such as GPIO → GPIOA or I2C → I2C1, or search a name or address. Select a core when the device has several register profiles.
+3. To read live values, connect and halt the matching target in Debug, then use the read button beside a register. Write-only registers cannot be read.
 
 **If a read fails:** check the model, address, and peripheral clock against the exact device reference manual.
 
-The built-in tables mainly cover common F1/G4 registers, not all STM32 devices. There are no register-write controls, but reading some status registers clears flags.
+Definitions come from vendor SVD files and official device-pack mappings and are available offline. Unmatched models show a missing-profile message; they never fall back to F1 or G4 addresses. Several part numbers can share a vendor profile. Check optional blocks and package pins in the device manual. Vendor descriptions retain their original language.
+
+There are no register-write controls, but reads can still clear flags or change peripheral state. Registers marked with read side effects require confirmation. Devices with several core or security-domain profiles currently support definition browsing only; live register reads are disabled until debugger target routing is implemented.
 
 <a id="8-source-organization"></a>
 

@@ -7,6 +7,7 @@ func runTests() throws {
     func rejects(_ label:String,_ f:()throws->Void) throws { do { try f() } catch { print("PASS: \(label)"); return }; throw StudioError("未拒绝：" + label) }
     let src = path(temp,"源 工程"); try fm.createDirectory(atPath:src,withIntermediateDirectories:true); try write("Mcu.Family=STM32G4\n",path(src,"test.ioc")); try write("test",path(src,"CMakeLists.txt"))
     var s = Settings(); s.root = path(temp,"总目录"); try fm.createDirectory(atPath:s.root,withIntermediateDirectories:true)
+    s.series = "Gseries"; s.chipFamily = "STM32G4"; s.chipModel = "STM32G431RBTx"; s.target = "target/stm32g4x.cfg"
     s.project = try e.importProject(src,s)
     try expect(exists(path(src,"test.ioc")) && exists(path(s.project,"test.ioc")),"中文/空格路径导入，源文件保留")
     try rejects("同名工程不覆盖") { _ = try e.importProject(src,s) }

@@ -47,6 +47,9 @@ final class DebugSession: ObservableObject {
     @Published var memory = "暂无内存数据"
     @Published var stackMemory = "暂无栈内存数据"
     @Published var registerOutput = ""
+    @Published private(set) var registerResultID = ""
+    @Published private(set) var deviceModel = ""
+    @Published private(set) var registerProfileID = ""
     @Published var source = ""
     @Published var sourceLine = 0
     @Published var busyCommand = false
@@ -76,6 +79,9 @@ final class DebugSession: ObservableObject {
             args += ["-c","bindto 127.0.0.1","-c","gdb_port 3333","-c","tcl_port disabled","-c","telnet_port disabled"]
             elfFile = elf; elfDate = (try? fm.attributesOfItem(atPath:elf)[.modificationDate]) as? Date; elfChanged = false
             active = true; connected = false; running = false; status = "正在启动 OpenOCD…"; generation = UUID(); let session = generation
+            deviceModel = s.chipModel; registerOutput = ""; registerResultID = ""
+            let profiles = RegisterCatalog.choices(family:s.chipFamily,model:s.chipModel)
+            registerProfileID = profiles.count == 1 ? profiles[0].id : ""
             serverBuffer = ""; debuggerBuffer = ""; serverOutput = ""
             let p = Process(), pipe = Pipe(); p.executableURL = URL(fileURLWithPath:s.openocd); p.arguments = args; p.environment = s.environment; p.standardOutput = pipe; p.standardError = pipe; p.standardInput = FileHandle.nullDevice
             server = p; serverPipe = pipe
@@ -221,12 +227,20 @@ final class DebugSession: ObservableObject {
         console("x/\(count)\(format)x \(address)") { _,text in self.memory = text }
     }
     func readRegister(_ register: RegisterDefinition) {
-        guard connected, !running else { return }
-        console("x/wx \(register.address)") { _, text in self.registerOutput = "\(register.name) @ \(register.address)\n\(text)" }
+        guard connected, !running, register.model == deviceModel, !registerProfileID.isEmpty,
+              register.profileID == registerProfileID, let command = register.readCommand else { return }
+        let session = generation
+        registerOutput = ""; registerResultID = ""
+        console(command) { _, text in
+            guard self.generation == session, self.deviceModel == register.model, self.registerProfileID == register.profileID else { return }
+            self.registerResultID = register.resultID
+            self.registerOutput = "\(register.name) @ \(register.address)\n\(text)"
+        }
     }
     private func fail(_ message:String) { disconnect(); status = message; append("✕ " + message + "\n") }
     func disconnect() {
         generation = UUID(); active = false; connected = false; running = false; busyCommand = false; refreshing = false
+        deviceModel = ""; registerProfileID = ""; registerOutput = ""; registerResultID = ""
         requests.removeAll(); current = nil
         debuggerPipe?.fileHandleForReading.readabilityHandler = nil; serverPipe?.fileHandleForReading.readabilityHandler = nil
         if let p = debugger, p.isRunning { try? input?.fileHandleForWriting.write(contentsOf:Data("-gdb-exit\n".utf8)); p.terminate() }

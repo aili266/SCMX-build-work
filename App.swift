@@ -38,24 +38,23 @@ final class Studio: ObservableObject {
     @Published var outputSheet = false
     private var lastCandidateSignature = ""
     private var trackedProject = ""
+    private var trackedFamily = ""
+    private var trackedModel = ""
     @Published var newSheet = false
     @Published var newName = ""
-    @Published var mcu = "STM32G431RBTx"
+    @Published var mcu = ""
     @Published var flashConfirm = false
     private var runner: Runner?
     let savePath = NSHomeDirectory() + "/Library/Application Support/SCMXBuildWork/settings.json"
     init() {
-        let legacyPath = NSHomeDirectory() + "/Library/Application Support/STM32Studio/settings.json"
-        settings = Settings.load(exists(savePath) ? savePath : legacyPath); trackedProject = settings.project
+        settings = Settings.load(savePath); trackedProject = settings.project; trackedFamily = settings.chipFamily; trackedModel = settings.chipModel
         settings.discover(); records = DeviceCatalog.load(settings.cube)
-        let saved = settings
         refresh()
-        settings.series = saved.series; settings.chipFamily = saved.chipFamily; settings.chipModel = saved.chipModel; settings.pack = saved.pack
-        if exists(saved.firmware) { settings.firmware = saved.firmware }; if exists(saved.debugELF) { settings.debugELF = saved.debugELF }; settings.outputDirectory = saved.outputDirectory; settings.followBuildOutputs = saved.followBuildOutputs; selectFamily(updateSeries:true); scanSerial(); refreshArtifact(force:true)
-        try? fm.createDirectory(atPath:settings.repository,withIntermediateDirectories:true)
+        selectFamily(updateSeries:true); scanSerial(); refreshArtifact(force:true)
         Timer.scheduledTimer(withTimeInterval:3,repeats:true) { [weak self] _ in self?.scanSerial(); self?.refreshArtifact(); self?.debug.checkELF() }
     }
     var families:[String] { Array(Set(records.map(\.family))).sorted() }
+    var canGenerateModel: Bool { records.contains { $0.name == settings.chipModel && $0.fromCubeMX && !$0.package.isEmpty } }
     var matchingModels:[MCURecord] { records.filter { $0.family == settings.chipFamily && (modelSearch.isEmpty || $0.name.localizedCaseInsensitiveContains(modelSearch) || $0.package.localizedCaseInsensitiveContains(modelSearch)) } }
     var menuModels:[MCURecord] {
         var rows = Array(matchingModels.prefix(150))
@@ -74,18 +73,23 @@ final class Studio: ObservableObject {
         save()
     }
     func selectFamily(updateSeries: Bool = false) {
-        if records.isEmpty {
-            if updateSeries { settings.series = SeriesCatalog.group(settings.chipFamily) ?? settings.series }
-            let engine = Engine(runner:Runner(log:{_ in}))
-            settings.target = engine.targetFor(settings.chipFamily,model:settings.chipModel) ?? ""
+        let changed = trackedFamily != settings.chipFamily
+        trackedFamily = settings.chipFamily
+        guard !settings.chipFamily.isEmpty else {
+            settings.chipModel = ""; trackedModel = ""; settings.target = ""; settings.pack = ""
             save(); return
         }
-        if !families.contains(settings.chipFamily) { settings.chipFamily = families.first ?? "" }
         if updateSeries { settings.series = SeriesCatalog.group(settings.chipFamily) ?? settings.series }
-        let models = records.filter{$0.family == settings.chipFamily}
-        if !models.contains(where:{$0.name == settings.chipModel}) { settings.chipModel = models.first?.name ?? "" }
+        if changed, !settings.chipModel.isEmpty {
+            let selected = records.first(where:{$0.name == settings.chipModel})
+            if selected.map({$0.family != settings.chipFamily}) ?? !settings.chipModel.hasPrefix(settings.chipFamily.replacingOccurrences(of:"+",with:"")) { settings.chipModel = "" }
+        }
         let e = Engine(runner:Runner(log:{_ in}))
-        settings.target = e.targetFor(settings.chipFamily,model:settings.chipModel).flatMap { e.openocdFile($0,settings) == nil ? nil : $0 } ?? ""
+        if settings.chipModel.isEmpty { settings.target = "" }
+        else if changed || trackedModel != settings.chipModel || settings.target.isEmpty {
+            settings.target = e.targetFor(settings.chipFamily,model:settings.chipModel).flatMap { e.openocdFile($0,settings) == nil ? nil : $0 } ?? ""
+        }
+        trackedModel = settings.chipModel
         if !packs.contains(where:{$0.folder == settings.pack}) { settings.pack = packs.first?.folder ?? "" }
         modelSearch = ""; save()
     }
@@ -148,18 +152,29 @@ final class Studio: ObservableObject {
     }
     func save() { try? fm.createDirectory(atPath:URL(fileURLWithPath:savePath).deletingLastPathComponent().path,withIntermediateDirectories:true); if let d = try? JSONEncoder().encode(settings) { try? d.write(to:URL(fileURLWithPath:savePath),options:.atomic) } }
     func refresh() {
-        let root = path(settings.root,settings.series)
-        projects = children(root).filter{var dir:ObjCBool = false; return fm.fileExists(atPath:path(root,$0),isDirectory:&dir) && dir.boolValue && !$0.hasPrefix(".")}.sorted().map{path(root,$0)}
-        if !projects.contains(settings.project) { settings.project = projects.first ?? "" }
-        selectProject(); selectFamily(); save()
+        projects = []
+        if !settings.root.isEmpty, !settings.series.isEmpty {
+            let root = path(settings.root,settings.series)
+            projects = children(root).filter{var dir:ObjCBool = false; return fm.fileExists(atPath:path(root,$0),isDirectory:&dir) && dir.boolValue && !$0.hasPrefix(".")}.sorted().map{path(root,$0)}
+        }
+        if !settings.project.isEmpty, !projects.contains(settings.project) { projects.insert(settings.project,at:0) }
+        save()
     }
     func selectProject() {
-        if trackedProject != settings.project { settings.outputDirectory = ""; trackedProject = settings.project }
+        let changed = trackedProject != settings.project
+        if changed { settings.outputDirectory = ""; settings.firmware = ""; settings.debugELF = ""; settings.expectedFirmwareHash = ""; settings.toolchain = ""; trackedProject = settings.project }
+        guard !settings.project.isEmpty else { refreshArtifact(force:true); save(); return }
         let e = Engine(runner:Runner(log:{_ in}))
-        settings.target = e.targetFor(e.family(settings.project)).flatMap { e.openocdFile($0,settings) == nil ? nil : $0 } ?? ""
-        settings.firmware = e.firmwareFiles(settings.build).first ?? ""; settings.debugELF = settings.firmware; settings.toolchain = ""
+        if changed || settings.firmware.isEmpty { settings.firmware = e.firmwareFiles(settings.build).first ?? ""; settings.debugELF = settings.firmware }
         let family = e.family(settings.project), chip = DeviceCatalog.iocValue("Mcu.UserName",settings.project)
         if !family.isEmpty { settings.chipFamily = family; settings.chipModel = chip }; selectFamily(); save()
+    }
+    func clearWorkspaceSelection() {
+        debug.disconnect(); terminal.disconnect()
+        settings.root = ""; settings.series = ""; settings.project = ""; settings.chipFamily = ""; settings.chipModel = ""; settings.target = ""; settings.pack = ""
+        settings.firmware = ""; settings.debugELF = ""; settings.outputDirectory = ""; settings.toolchain = ""; settings.expectedFirmwareHash = ""; settings.probeSerial = ""; settings.serialPort = ""
+        trackedProject = ""; trackedFamily = ""; trackedModel = ""; projects = []; outputChoices = []; outputSheet = false; modelSearch = ""; artifact = nil; artifactMessage = "No firmware selected"
+        debug.registerOutput = ""; failed = false; status = "Ready · Select a project to begin"; save()
     }
     func choose(_ key: WritableKeyPath<Settings,String>, directory: Bool = false, title: String = "Choose File", completion:(()->Void)? = nil) {
         let panel = NSOpenPanel(); panel.title = L10n.string(title); panel.canChooseDirectories = directory; panel.canChooseFiles = !directory; panel.allowsMultipleSelection = false
@@ -230,6 +245,7 @@ final class Studio: ObservableObject {
     }
     func create() {
         selectFamily(updateSeries:true)
+        guard canGenerateModel else { failed = true; status = "Selected model is not available in the CubeMX database."; return }
         guard requirePack(settings.chipFamily) else { return }
         let name = newName, chip = settings.chipModel; newSheet = false
         perform("Create and Generate Project") { e,s in
@@ -263,6 +279,7 @@ struct Card<Content:View>: View {
 struct MainView: View {
     @ObservedObject var s: Studio
     @State private var showingNavigationOrder = false
+    @State private var showingClearWorkspace = false
     @ObservedObject private var localization = LocalizationSettings.shared
     var body: some View {
         HStack(spacing:0) {
@@ -291,11 +308,15 @@ struct MainView: View {
             }
         }.background(Color(nsColor:.windowBackgroundColor)).frame(minWidth:1020,minHeight:730)
         .sheet(isPresented:$s.outputSheet) { VStack(alignment:.leading,spacing:14) { Text("Select Build Firmware").font(.title2.bold()); Text("Multiple outputs or changed paths detected. Select firmware explicitly; debugging uses the matching ELF.").foregroundStyle(.secondary); ScrollView { VStack(alignment:.leading,spacing:10) { ForEach(s.outputChoices,id:\.self) { file in Button { s.adoptFirmware(file); s.outputSheet = false } label: { Text(file).frame(maxWidth:.infinity,alignment:.leading) } } } }.frame(height:220); Button("Cancel") { s.outputSheet = false } }.padding(24).frame(width:680) }
-        .sheet(isPresented:$s.newSheet) { VStack(alignment:.leading,spacing:18) { Text("Create STM32 Project").font(.title2.bold()); Text("Create a project under \(s.settings.series) and generate CMake code with CubeMX.").foregroundStyle(.secondary); TextField("Project name, e.g. MotorControl",text:$s.newName); deviceSelection; Text("Use the same device model as CubeMX. Configure pins and clocks after generation; multicore, TrustZone, and external Flash projects require device-specific configuration.").font(.caption).foregroundStyle(.secondary); HStack { Spacer(); Button("Cancel") { s.newSheet = false }; Button("Create and Generate") { s.create() }.buttonStyle(.borderedProminent).disabled(s.newName.isEmpty) } }.textFieldStyle(.roundedBorder).padding(26).frame(width:490) }
+        .sheet(isPresented:$s.newSheet) { newProjectSheet }
         .alert("Flash Firmware to Board?",isPresented:$s.flashConfirm) { Button("Cancel",role:.cancel) {}; Button("Start Flashing") { s.perform("Flash and Verify") { e,c in try e.program(.flash,c); return nil } } } message: { Text("MCU: \(s.settings.chipModel)\nBackend: \(s.settings.programmerBackend)\nTransport: \(s.settings.programmerBackend == "OpenOCD" ? "SWD" : s.settings.programmerTransport)\nSerial: \(s.settings.probeSerial.isEmpty ? L10n.string("Not specified") : s.settings.probeSerial)\nFirmware: \(s.settings.firmware)\n\(L10n.string(s.artifactMessage))\n\(s.artifact?.summary ?? "")\nThis overwrites the program on the device. After UART / DFU, restore normal boot mode and reset manually.") }
         .sheet(isPresented:$showingNavigationOrder) {
             NavigationOrderView(items:s.navigationItems) { order in s.saveNavigationOrder(order) }
         }
+        .alert("Clear Workspace and Device Selection?",isPresented:$showingClearWorkspace) {
+            Button("Cancel",role:.cancel) {}
+            Button("Clear Selection") { s.clearWorkspaceSelection() }
+        } message: { Text("Saved project, device, and firmware selections will be cleared. Project files are not deleted. Tool paths, language, and sidebar order are kept.") }
         .environment(\.locale,localization.language.locale)
     }
     var languagePicker: some View {
@@ -304,29 +325,33 @@ struct MainView: View {
         }.pickerStyle(.menu)
     }
     func nav(_ name:String,_ icon:String,_ n:Int) -> some View { Button { s.tab = n; if n == 1 { s.refresh() } } label:{ Label(LocalizedStringKey(name),systemImage:icon).frame(maxWidth:.infinity,alignment:.leading).padding(10).background(s.tab == n ? Color.accentColor.opacity(0.13) : .clear).clipShape(RoundedRectangle(cornerRadius:8)) }.buttonStyle(.plain) }
-    var deviceSelection: some View { VStack(alignment:.leading,spacing:9) {
-        if s.records.isEmpty {
+    var deviceSelection: some View { DeviceSelectionView(studio:s) }
+    var newProjectSheet: some View {
+        VStack(alignment:.leading,spacing:18) {
+            Text("Create STM32 Project").font(.title2.bold())
+            TextField("Project name, e.g. MotorControl",text:$s.newName)
+            deviceSelection
+            if !s.settings.chipModel.isEmpty, !s.canGenerateModel {
+                Label("Selected model is not available in the CubeMX database.",systemImage:"exclamationmark.triangle").font(.caption).foregroundStyle(.orange)
+            }
+            Text("Use the same device model as CubeMX. Configure pins and clocks after generation; multicore, TrustZone, and external Flash projects require device-specific configuration.").font(.caption).foregroundStyle(.secondary)
             HStack {
-                TextField("Device family, e.g. STM32G4",text:$s.settings.chipFamily)
-                    .onChange(of:s.settings.chipFamily) { _ in s.selectFamily(updateSeries:true) }
-                TextField("Full model, e.g. STM32G431RBTx",text:$s.settings.chipModel)
-                    .onChange(of:s.settings.chipModel) { _ in s.selectFamily(updateSeries:true) }
-            }.textFieldStyle(.roundedBorder).onSubmit { s.selectFamily(updateSeries:true) }
-        } else {
-        Picker("Device Family",selection:$s.settings.chipFamily) { ForEach(s.families,id:\.self){ Text($0).tag($0) } }.onChange(of:s.settings.chipFamily){_ in s.selectFamily(updateSeries:true)}
-        HStack { TextField("Search model / package, e.g. F103C8, LQFP48",text:$s.modelSearch).textFieldStyle(.roundedBorder); Text("\(s.matchingModels.count) matches").font(.caption).foregroundStyle(.secondary) }
-        Picker("MCU Model",selection:$s.settings.chipModel) { if s.menuModels.isEmpty { Text("No devices found. Check the CubeMX path.").tag("") }; ForEach(s.menuModels,id:\.name) { Text($0.name + " · " + $0.package).tag($0.name) } }.onChange(of:s.settings.chipModel){_ in let e = Engine(runner:Runner(log:{_ in})); s.settings.target = e.targetFor(s.settings.chipFamily,model:s.settings.chipModel).flatMap { e.openocdFile($0,s.settings) == nil ? nil : $0 } ?? ""; s.save()}
-        if s.matchingModels.count > 150 { Text("Showing the first 150 results. Search to narrow the list.").font(.caption).foregroundStyle(.secondary) }
-        }
-    } }
+                Spacer()
+                Button("Cancel") { s.newSheet = false }
+                Button("Create and Generate") { s.create() }.buttonStyle(.borderedProminent)
+                    .disabled(s.newName.isEmpty || !s.canGenerateModel || s.settings.root.isEmpty)
+            }
+        }.textFieldStyle(.roundedBorder).padding(26).frame(width:490)
+    }
     var packSelection: some View { VStack(alignment:.leading,spacing:7) {
-        if s.packs.isEmpty { HStack { Label("No \(s.settings.chipFamily) firmware pack installed",systemImage:"exclamationmark.circle").foregroundStyle(.orange); Spacer(); Button("Official Downloads") { NSWorkspace.shared.open(FirmwarePack.downloadURL(s.settings.chipFamily)) } } }
+        if s.settings.chipFamily.isEmpty { Text("No device selected").font(.caption).foregroundStyle(.secondary) }
+        else if s.packs.isEmpty { HStack { Label("No \(s.settings.chipFamily) firmware pack installed",systemImage:"exclamationmark.circle").foregroundStyle(.orange); Spacer(); Button("Official Downloads") { NSWorkspace.shared.open(FirmwarePack.downloadURL(s.settings.chipFamily)) } } }
         else { Picker("Available Firmware Pack",selection:$s.settings.pack) { ForEach(s.packs,id:\.folder) { Text($0.name).tag($0.folder) } }.onChange(of:s.settings.pack){_ in s.save()} }
     } }
     var flasherView: some View { ScrollView { VStack(spacing:16) {
         Card(title:"01  Select Device",icon:"cpu") {
             deviceSelection
-            HStack { Button("Detect from Project .ioc") { s.identifyIOC() }; Button("Refresh Device Catalog") { s.reloadCatalog() }; Spacer(); Text("Device catalog from local CubeMX").font(.caption).foregroundStyle(.secondary) }
+            HStack { Button("Detect from Project .ioc") { s.identifyIOC() }; Button("Refresh Device Catalog") { s.reloadCatalog() }; Spacer(); Text("Bundled device catalog + local CubeMX").font(.caption).foregroundStyle(.secondary) }
             packSelection
         }
         Card(title:"02  Programming & Storage",icon:"cable.connector") {
@@ -339,8 +364,8 @@ struct MainView: View {
     var projectView: some View { ScrollView { VStack(spacing:16) {
         Card(title:"01  Project Location",icon:"folder") {
             HStack { Text("Workspace").frame(width:70,alignment:.leading); TextField("Choose workspace directory",text:$s.settings.root).textFieldStyle(.roundedBorder).onSubmit{s.refresh()}; Button("Choose…") { s.choose(\.root,directory:true,title:"Choose STM32 Workspace") { s.refresh() } } }
-            HStack { Picker("Series",selection:Binding(get:{s.settings.series},set:{s.settings.series = $0; s.refresh()})) { ForEach(SeriesCatalog.groups,id:\.self) { Text($0 + " · " + (SeriesCatalog.details[$0] ?? "")).tag($0) } }.pickerStyle(.menu).frame(width:360); Spacer(); Button("Refresh") { s.refresh() }; Button("Import Project…") { s.importProject() }; Button("New Project…") { s.newName = ""; s.selectFamily(updateSeries:true); s.newSheet = true } }
-            Picker("Current Project",selection:$s.settings.project) { if s.projects.isEmpty { Text("No projects. Import or create one.").tag("") }; ForEach(s.projects,id:\.self) { Text(URL(fileURLWithPath:$0).lastPathComponent).tag($0) } }.onChange(of:s.settings.project){_ in s.selectProject()}
+            HStack { Picker("Series",selection:Binding(get:{s.settings.series},set:{s.settings.series = $0; s.refresh()})) { Text("Not selected").tag(""); ForEach(SeriesCatalog.groups,id:\.self) { Text($0 + " · " + (SeriesCatalog.details[$0] ?? "")).tag($0) } }.pickerStyle(.menu).frame(width:360); Spacer(); Button("Refresh") { s.refresh() }; Button("Import Project…") { s.importProject() }.disabled(s.settings.root.isEmpty || s.settings.series.isEmpty); Button("New Project…") { s.newName = ""; s.selectFamily(updateSeries:true); s.newSheet = true }.disabled(s.settings.root.isEmpty) }
+            Picker("Current Project",selection:$s.settings.project) { Text("No project selected").tag(""); ForEach(s.projects,id:\.self) { Text(URL(fileURLWithPath:$0).lastPathComponent).tag($0) } }.onChange(of:s.settings.project){_ in s.selectProject()}
             Text(L10n.string("Supported devices: ") + (SeriesCatalog.details[s.settings.series] ?? s.settings.series)).font(.caption).foregroundStyle(.secondary)
             if s.settings.series == "MPseries" { Text("MP series supports project organization and CubeMX configuration. Linux requires its SDK; building and flashing require the appropriate Cortex-M subproject and device configuration.").font(.caption).foregroundStyle(.orange) }
             if !s.settings.project.isEmpty { Text(s.settings.project).font(.caption).foregroundStyle(.secondary).textSelection(.enabled) }
@@ -361,9 +386,11 @@ struct MainView: View {
                 Label(URL(fileURLWithPath:s.settings.firmware).lastPathComponent,systemImage:"doc.text").textSelection(.enabled)
                 if let artifact = s.artifact { Text(artifact.summary).font(.caption).foregroundStyle(.secondary).textSelection(.enabled) }
             } else { Text("After a successful build, the latest ELF is selected for flashing and debugging.").font(.caption).foregroundStyle(.secondary) }
-            let compileDB = path(s.settings.build,"compile_commands.json")
-            Label(LocalizedStringKey(FileManager.default.fileExists(atPath:compileDB) ? "compile_commands.json is available for code completion" : "No compile_commands.json yet. Configure with CMake first."), systemImage:FileManager.default.fileExists(atPath:compileDB) ? "checkmark.circle" : "exclamationmark.triangle")
-                .font(.caption).foregroundStyle(FileManager.default.fileExists(atPath:compileDB) ? .green : .orange)
+            if !s.settings.project.isEmpty {
+                let compileDB = path(s.settings.build,"compile_commands.json")
+                Label(LocalizedStringKey(FileManager.default.fileExists(atPath:compileDB) ? "compile_commands.json is available for code completion" : "No compile_commands.json yet. Configure with CMake first."), systemImage:FileManager.default.fileExists(atPath:compileDB) ? "checkmark.circle" : "exclamationmark.triangle")
+                    .font(.caption).foregroundStyle(FileManager.default.fileExists(atPath:compileDB) ? .green : .orange)
+            }
         }
         Card(title:"04  Flash to Board",icon:"cable.connector") {
             HStack { Picker("Probe",selection:$s.settings.probe) { Text("ST-Link").tag("ST-Link"); Text("CMSIS-DAP").tag("CMSIS-DAP") }.frame(width:230); Spacer(); Text("SWD Speed"); TextField("1000",text:$s.settings.speed).frame(width:65).textFieldStyle(.roundedBorder); Text("kHz").foregroundStyle(.secondary) }
@@ -397,7 +424,10 @@ struct MainView: View {
         }
     }.padding(24).disabled(s.busy) } }
     var toolsView: some View { ScrollView { VStack(spacing:16) {
-        Card(title:"Settings",icon:"globe") { languagePicker }
+        Card(title:"Settings",icon:"globe") {
+            languagePicker
+            HStack { Button("Clear Workspace and Device Selection…") { showingClearWorkspace = true }; Spacer() }
+        }
         Card(title:"Firmware Pack Repository",icon:"shippingbox") {
             HStack { TextField("Firmware pack directory",text:$s.settings.repository).textFieldStyle(.roundedBorder); Button("Choose…") { s.choose(\.repository,directory:true,title:"Choose STM32 Firmware Pack Repository") { s.selectFamily() } } }
             HStack { Button("Create / Check Directory") { do { try fm.createDirectory(atPath:s.settings.repository,withIntermediateDirectories:true); s.selectFamily(); s.status = "Firmware repository is ready" } catch { s.failed = true; s.status = error.localizedDescription } }; Button("Open Directory") { NSWorkspace.shared.open(URL(fileURLWithPath:s.settings.repository)) }; Spacer(); Button("ST Downloads") { NSWorkspace.shared.open(FirmwarePack.downloadURL(s.settings.chipFamily)) } }
@@ -441,6 +471,37 @@ struct NavigationOrderView: View {
     }
 }
 
+struct DeviceSelectionView: View {
+    @ObservedObject var studio: Studio
+    @ObservedObject private var debug: DebugSession
+    init(studio:Studio) { self.studio = studio; debug = studio.debug }
+    var body: some View {
+        VStack(alignment:.leading,spacing:9) {
+            if studio.records.isEmpty {
+                HStack {
+                    TextField("Device family, e.g. STM32G4",text:$studio.settings.chipFamily)
+                        .onChange(of:studio.settings.chipFamily) { _ in studio.selectFamily(updateSeries:true) }
+                    TextField("Full model, e.g. STM32G431RBTx",text:$studio.settings.chipModel)
+                }.textFieldStyle(.roundedBorder).onSubmit { studio.selectFamily(updateSeries:true) }
+            } else {
+                Picker("Device Family",selection:$studio.settings.chipFamily) {
+                    Text("Not selected").tag("")
+                    ForEach(studio.families,id:\.self) { Text($0).tag($0) }
+                }.onChange(of:studio.settings.chipFamily) { _ in studio.selectFamily(updateSeries:true) }
+                HStack {
+                    TextField("Search model / package, e.g. F103C8, LQFP48",text:$studio.modelSearch).textFieldStyle(.roundedBorder)
+                    Text("\(studio.matchingModels.count) matches").font(.caption).foregroundStyle(.secondary)
+                }
+                Picker("MCU Model",selection:$studio.settings.chipModel) {
+                    Text("Not selected").tag("")
+                    ForEach(studio.menuModels,id:\.name) { Text($0.name + ($0.package.isEmpty ? "" : " · " + $0.package)).tag($0.name) }
+                }.onChange(of:studio.settings.chipModel) { _ in studio.selectFamily(updateSeries:true) }.disabled(studio.settings.chipFamily.isEmpty)
+                if studio.matchingModels.count > 150 { Text("Showing the first 150 results. Search to narrow the list.").font(.caption).foregroundStyle(.secondary) }
+            }
+        }.disabled(debug.active)
+    }
+}
+
 final class AppDelegate: NSObject, NSApplicationDelegate {
     var window: NSWindow?
     let studio = Studio()
@@ -476,6 +537,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let output = CommandLine.arguments[i+1]
             DispatchQueue.main.asyncAfter(deadline:.now() + 2) {
                 var report = "interfaceLanguage=\(LocalizationSettings.shared.language.rawValue)\nlocalizedFlashing=\(L10n.string("Flashing"))\nwindowVisible=\(w.isVisible)\nwindowTitle=\(w.title)\ncontentView=\(String(describing:type(of:w.contentView!)))\nsize=\(w.contentView!.bounds.size)\nprojects=\(self.studio.projects.count)\n"
+                report += "workspace=\(self.studio.settings.root)\nseries=\(self.studio.settings.series)\nproject=\(self.studio.settings.project)\nchipFamily=\(self.studio.settings.chipFamily)\nchipModel=\(self.studio.settings.chipModel)\nfirmware=\(self.studio.settings.firmware)\nregisterDevices=\(RegisterCatalog.devices.count)\nregisterProfiles=\(RegisterCatalog.allProfiles.count)\n"
+                if let snapshot = try? RegisterCatalog.snapshot(family:self.studio.settings.chipFamily,model:self.studio.settings.chipModel) {
+                    report += "registerProfile=\(snapshot.profile.name)\nregisterCount=\(snapshot.registers.count)\n"
+                }
                 if logStress, let root = w.contentView {
                     report += LogViewDiagnostics.report(root:root,source:self.studio.log,outputDirectory:output)
                 }

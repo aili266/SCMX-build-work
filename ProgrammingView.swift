@@ -30,7 +30,7 @@ struct ProgrammerControls: View {
                     }
                 }
                 if studio.settings.programmerBackend == "OpenOCD" {
-                    HStack { Text("Target"); TextField("target/stm32g4x.cfg",text:$studio.settings.target); Button("Choose…") { studio.choose(\.target,title:"Choose OpenOCD Target") } }
+                    HStack { Text("Target"); TextField("Matching OpenOCD target .cfg",text:$studio.settings.target); Button("Choose…") { studio.choose(\.target,title:"Choose OpenOCD Target") } }
                 }
             }
             if studio.settings.programmerBackend == "CubeProgrammer" && studio.settings.programmerTransport == "UART" {

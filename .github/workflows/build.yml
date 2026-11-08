@@ -9,6 +9,16 @@ jobs:
         run: zsh build.command
       - name: Regression tests without hardware
         run: dist/SCMX-build-work.app/Contents/MacOS/STM32Studio --programming-test
+      - name: Verify empty default settings
+        run: dist/SCMX-build-work.app/Contents/MacOS/STM32Studio --settings-test
+      - name: Verify register lookup safeguards
+        run: dist/SCMX-build-work.app/Contents/MacOS/STM32Studio --register-test
+      - name: Validate every bundled register profile
+        run: dist/SCMX-build-work.app/Contents/MacOS/STM32Studio --register-data-test
+      - name: Verify first launch in an empty home
+        run: |
+          TEST_HOME="$(mktemp -d)"
+          env CFFIXED_USER_HOME="$TEST_HOME" SCMX_TEST_HOME="$TEST_HOME" dist/SCMX-build-work.app/Contents/MacOS/STM32Studio --startup-test
       - name: Verify bundled language resources
         run: dist/SCMX-build-work.app/Contents/MacOS/STM32Studio --localization-test
       - name: Verify process execution safeguards

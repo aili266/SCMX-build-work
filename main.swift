@@ -13,6 +13,14 @@ if CommandLine.arguments.contains("--localization-test") {
         print("PASS: English and Simplified Chinese keys match and navigation translations resolve")
         exit(0)
     } catch { print("FAIL: \(error)"); exit(1) }
+} else if CommandLine.arguments.contains("--settings-test") {
+    do { try runSettingsTests(); exit(0) } catch { print("FAIL: \(error)"); exit(1) }
+} else if CommandLine.arguments.contains("--startup-test") {
+    do { try runStartupTests(); exit(0) } catch { print("FAIL: \(error)"); exit(1) }
+} else if CommandLine.arguments.contains("--register-test") {
+    do { try runRegisterDatabaseTests(); exit(0) } catch { print("FAIL: \(error)"); exit(1) }
+} else if CommandLine.arguments.contains("--register-data-test") {
+    do { try runBundledRegisterTests(); exit(0) } catch { print("FAIL: \(error)"); exit(1) }
 } else if CommandLine.arguments.contains("--log-test") {
     do { try runLogBufferTests(); exit(0) } catch { print("FAIL: \(error)"); exit(1) }
 } else if CommandLine.arguments.contains("--runner-test") {

@@ -1,0 +1,287 @@
+{
+  "deviceCount": 3822,
+  "exclusions": [
+    {
+      "devices": [
+        "STM32MP151AAAx",
+        "STM32MP151AABx",
+        "STM32MP151AACx",
+        "STM32MP151AADx",
+        "STM32MP151CAAx",
+        "STM32MP151CABx",
+        "STM32MP151CACx",
+        "STM32MP151CADx",
+        "STM32MP151DAAx",
+        "STM32MP151DABx",
+        "STM32MP151DACx",
+        "STM32MP151DADx",
+        "STM32MP151FAAx",
+        "STM32MP151FABx",
+        "STM32MP151FACx",
+        "STM32MP151FADx"
+      ],
+      "pack": "Keil.STM32MP1xx_DFP.1.3.1",
+      "reason": "Legacy MP1 SVD has no explicit redistribution authorization; excluded",
+      "svd": "SVD/STM32MP151x.svd"
+    },
+    {
+      "devices": [
+        "STM32MP153AAAx",
+        "STM32MP153AABx",
+        "STM32MP153AACx",
+        "STM32MP153AADx",
+        "STM32MP153CAAx",
+        "STM32MP153CABx",
+        "STM32MP153CACx",
+        "STM32MP153CADx",
+        "STM32MP153DAAx",
+        "STM32MP153DABx",
+        "STM32MP153DACx",
+        "STM32MP153DADx",
+        "STM32MP153FAAx",
+        "STM32MP153FABx",
+        "STM32MP153FACx",
+        "STM32MP153FADx"
+      ],
+      "pack": "Keil.STM32MP1xx_DFP.1.3.1",
+      "reason": "Legacy MP1 SVD has no explicit redistribution authorization; excluded",
+      "svd": "SVD/STM32MP153x.svd"
+    },
+    {
+      "devices": [
+        "STM32MP157AAAx",
+        "STM32MP157AABx",
+        "STM32MP157AACx",
+        "STM32MP157AADx",
+        "STM32MP157CAAx",
+        "STM32MP157CABx",
+        "STM32MP157CACx",
+        "STM32MP157CADx",
+        "STM32MP157DAAx",
+        "STM32MP157DABx",
+        "STM32MP157DACx",
+        "STM32MP157DADx",
+        "STM32MP157FAAx",
+        "STM32MP157FABx",
+        "STM32MP157FACx",
+        "STM32MP157FADx"
+      ],
+      "pack": "Keil.STM32MP1xx_DFP.1.3.1",
+      "reason": "Legacy MP1 SVD has no explicit redistribution authorization; excluded",
+      "svd": "SVD/STM32MP157x.svd"
+    }
+  ],
+  "families": {
+    "STM32C0": 95,
+    "STM32C5": 237,
+    "STM32F0": 184,
+    "STM32F1": 95,
+    "STM32F2": 85,
+    "STM32F3": 159,
+    "STM32F4": 360,
+    "STM32F7": 212,
+    "STM32G0": 182,
+    "STM32G4": 183,
+    "STM32G5": 401,
+    "STM32H5": 151,
+    "STM32H7": 166,
+    "STM32H7P": 58,
+    "STM32H7RS": 34,
+    "STM32L0": 166,
+    "STM32L1": 219,
+    "STM32L4": 173,
+    "STM32L4+": 82,
+    "STM32L5": 38,
+    "STM32N6": 24,
+    "STM32U0": 48,
+    "STM32U3": 171,
+    "STM32U5": 162,
+    "STM32WB": 23,
+    "STM32WB0": 10,
+    "STM32WBA": 61,
+    "STM32WL": 17,
+    "STM32WL3": 22,
+    "STM32WL4": 4
+  },
+  "profileCount": 215,
+  "registerCount": 526763,
+  "replacedLegacySVDs": [
+    {
+      "excludedLegacySVD": "SVD/STM32F100xx.svd",
+      "legacySvdSHA256": "b68ce8c50ce3d6f3f7a32c6a0d6f48da48622c5aca84788ea4d5fa23b995ca8a",
+      "pack": "Keil.STM32F1xx_DFP.2.4.1",
+      "reason": "Original SVD lacks explicit redistribution authorization; use verified Apache replacement",
+      "replacementSVD": "STM32F100.svd",
+      "replacementSvdSHA256": "68a822ee7b024c614008c0420bb19f8e82cfb09b9b5ba289a14c045e51c2d3c3"
+    },
+    {
+      "excludedLegacySVD": "SVD/STM32F101xx.svd",
+      "legacySvdSHA256": "c9a5f142a509848a52c809c4fc016cc7cef484d30cb3566d920c95caf43a29d0",
+      "pack": "Keil.STM32F1xx_DFP.2.4.1",
+      "reason": "Original SVD lacks explicit redistribution authorization; use verified Apache replacement",
+      "replacementSVD": "STM32F101.svd",
+      "replacementSvdSHA256": "2ce48e1ba33f9ec4e49205ac21d51389f70310769cd8db03b4a61c734fef7e8a"
+    },
+    {
+      "excludedLegacySVD": "SVD/STM32F102xx.svd",
+      "legacySvdSHA256": "8e549aa2810cce280f9e07a34ef5cb96ffbc1d59bfcf17efce80d76a99daa74f",
+      "pack": "Keil.STM32F1xx_DFP.2.4.1",
+      "reason": "Original SVD lacks explicit redistribution authorization; use verified Apache replacement",
+      "replacementSVD": "STM32F102.svd",
+      "replacementSvdSHA256": "da0fd2873120b37f61475e970b0f71e70fab40adcad869f76154bb42f5ba28a9"
+    },
+    {
+      "excludedLegacySVD": "SVD/STM32F103xx.svd",
+      "legacySvdSHA256": "1d92b65aaf397a18a599fb6a840812015ad379cdcc0cc3687f673f63e7445367",
+      "pack": "Keil.STM32F1xx_DFP.2.4.1",
+      "reason": "Original SVD lacks explicit redistribution authorization; use verified Apache replacement",
+      "replacementSVD": "STM32F103.svd",
+      "replacementSvdSHA256": "b755c2caa0f5eee516a53c0ec1ce03c5ef68cc7f99f05f1c506954a688330272"
+    },
+    {
+      "excludedLegacySVD": "SVD/STM32F105xx.svd",
+      "legacySvdSHA256": "0e7a2a04b67e4561a49b311f4465fd8aa8c4c2bf8eb545d57971464c847035b5",
+      "pack": "Keil.STM32F1xx_DFP.2.4.1",
+      "reason": "Original SVD lacks explicit redistribution authorization; use verified Apache replacement",
+      "replacementSVD": "STM32F105.svd",
+      "replacementSvdSHA256": "09120c7a5211fcdb1142e29fb3da39bea7170be62b28cf778490be9f69dd992d"
+    },
+    {
+      "excludedLegacySVD": "SVD/STM32F107xx.svd",
+      "legacySvdSHA256": "8ffd6b479323044bb1b9c2afbc0662f62f06f51818b5ef5deaec0c6fbdfd9fed",
+      "pack": "Keil.STM32F1xx_DFP.2.4.1",
+      "reason": "Original SVD lacks explicit redistribution authorization; use verified Apache replacement",
+      "replacementSVD": "STM32F107.svd",
+      "replacementSvdSHA256": "fe15beb0d6dfb50a605e28472d9d020881e8692fa61249d1aef6477f87274822"
+    }
+  ],
+  "schema": 1,
+  "unreferencedSVDs": [
+    {
+      "pack": "Keil.STM32F0xx_DFP.3.1.1",
+      "reason": "Not referenced by any device in this archive's PDSC; not bundled",
+      "sha256": "b1c225a7e64497c4841328f1648b6da51df407026974394bdee182c5d6f031b3",
+      "svd": "CMSIS/SVD/STM32F030.svd"
+    },
+    {
+      "pack": "Keil.STM32F0xx_DFP.3.1.1",
+      "reason": "Not referenced by any device in this archive's PDSC; not bundled",
+      "sha256": "5ffcaf882098dab5d32b1b8cb778ed95e1bd41a935b4e9c8319a457e816a344a",
+      "svd": "CMSIS/SVD/STM32F031x.svd"
+    },
+    {
+      "pack": "Keil.STM32F0xx_DFP.3.1.1",
+      "reason": "Not referenced by any device in this archive's PDSC; not bundled",
+      "sha256": "4f7fd3f469c34bd5a2db997b4f95711fb32e26ad9b54b62a818f5e478060c540",
+      "svd": "CMSIS/SVD/STM32F042x.svd"
+    },
+    {
+      "pack": "Keil.STM32F0xx_DFP.3.1.1",
+      "reason": "Not referenced by any device in this archive's PDSC; not bundled",
+      "sha256": "5b9eacb6011f834077b59ff5cb503767c0a101ace2da5ee67b0d814260c5f1c7",
+      "svd": "CMSIS/SVD/STM32F072x.svd"
+    },
+    {
+      "pack": "Keil.STM32F0xx_DFP.3.1.1",
+      "reason": "Not referenced by any device in this archive's PDSC; not bundled",
+      "sha256": "18a4e6ce21583254cd6a26dad5116f638469526eb7c6b4b192d42baf70760485",
+      "svd": "CMSIS/SVD/STM32F091x.svd"
+    },
+    {
+      "pack": "Keil.STM32F0xx_DFP.3.1.1",
+      "reason": "Not referenced by any device in this archive's PDSC; not bundled",
+      "sha256": "8c76cf022e5d5c8b9c7c0d4e4f16a0064217ebc900805aeb982607d651035a8f",
+      "svd": "CMSIS/SVD/STM32F0xx.svd"
+    },
+    {
+      "pack": "Keil.STM32F2xx_DFP.3.1.0",
+      "reason": "Not referenced by any device in this archive's PDSC; not bundled",
+      "sha256": "f163586de5a56ef522924a1b31a4efdeb6f6c119fce1258860b049c090707183",
+      "svd": "CMSIS/SVD/STM32F20x.svd"
+    },
+    {
+      "pack": "Keil.STM32G0xx_DFP.2.1.0",
+      "reason": "Not referenced by any device in this archive's PDSC; not bundled",
+      "sha256": "bb05a90b98553707126a2301330fe40c9b857f8f99433d48b11d1f1786b37eb9",
+      "svd": "CMSIS/SVD/STM32G07x.svd"
+    },
+    {
+      "pack": "Keil.STM32H7xx_DFP.4.1.3",
+      "reason": "Not referenced by any device in this archive's PDSC; not bundled",
+      "sha256": "d4c4859a0a876d992dc75677cfb976e42ccbac60eb848395695ff81888f2c7f1",
+      "svd": "CMSIS/SVD/STM32H73x.svd"
+    },
+    {
+      "pack": "Keil.STM32H7xx_DFP.4.1.3",
+      "reason": "Not referenced by any device in this archive's PDSC; not bundled",
+      "sha256": "53c079ae31902ab2efdcecf7a3ac7665a6101b94960805285fbd42052378ba5a",
+      "svd": "CMSIS/SVD/STM32H742x.svd"
+    },
+    {
+      "pack": "Keil.STM32L1xx_DFP.2.1.0",
+      "reason": "Not referenced by any device in this archive's PDSC; not bundled",
+      "sha256": "09c66c11e60c483651ec6bed6b507ac66147b87138ad20784cdd3abaa408d602",
+      "svd": "CMSIS/SVD/STM32L15x.svd"
+    },
+    {
+      "pack": "Keil.STM32L1xx_DFP.2.1.0",
+      "reason": "Not referenced by any device in this archive's PDSC; not bundled",
+      "sha256": "4aadc7b89319c901e68b08395e3d13339ac81be5cfb9ccb72b07137740c107c0",
+      "svd": "CMSIS/SVD/STM32L15xC.svd"
+    },
+    {
+      "pack": "Keil.STM32L1xx_DFP.2.1.0",
+      "reason": "Not referenced by any device in this archive's PDSC; not bundled",
+      "sha256": "777c0f5dae8132db419b58d0bf47a849a965141cbb7f46c094c98ce7d809f530",
+      "svd": "CMSIS/SVD/STM32L15xxxA.svd"
+    },
+    {
+      "pack": "Keil.STM32L1xx_DFP.2.1.0",
+      "reason": "Not referenced by any device in this archive's PDSC; not bundled",
+      "sha256": "5d0b2cc2f6fbd1bbd148b2f2bd5226dca6bdb9c4b5d4233e95ea65ef3bb5a251",
+      "svd": "CMSIS/SVD/STM32L1xx.svd"
+    },
+    {
+      "pack": "Keil.STM32L4xx_DFP.3.1.0",
+      "reason": "Not referenced by any device in this archive's PDSC; not bundled",
+      "sha256": "87eb28da83ec9b803a094a71800a586865f7ab13d29c55a35f8270f1369656d0",
+      "svd": "CMSIS/SVD/STM32L476.svd"
+    },
+    {
+      "pack": "Keil.STM32L4xx_DFP.3.1.0",
+      "reason": "Not referenced by any device in this archive's PDSC; not bundled",
+      "sha256": "adb7887dff62595b09197f0eea62b2e2c899cb814fc7021d8482519a5d98569e",
+      "svd": "CMSIS/SVD/STM32L496.svd"
+    },
+    {
+      "pack": "Keil.STM32U5xx_DFP.3.2.0",
+      "reason": "Not referenced by any device in this archive's PDSC; not bundled",
+      "sha256": "f488f26f19063bab37e94447a61a22cb6c28a077b742509df27c935449877a0b",
+      "svd": "CMSIS/SVD/STM32U5Fx.svd"
+    },
+    {
+      "pack": "Keil.STM32U5xx_DFP.3.2.0",
+      "reason": "Not referenced by any device in this archive's PDSC; not bundled",
+      "sha256": "989f74f142547f8557a275553b7c02632f82b749c51026256890e7fc0fcfcc20",
+      "svd": "CMSIS/SVD/STM32U5Gx.svd"
+    },
+    {
+      "pack": "Keil.STM32U5xx_DFP.3.2.0",
+      "reason": "Not referenced by any device in this archive's PDSC; not bundled",
+      "sha256": "f154b8a7b7c0db1eeb202e774b1e28c28b1c52caa43f9352c372499f0e27b417",
+      "svd": "CMSIS/SVD/STM32U5xx.svd"
+    },
+    {
+      "pack": "Keil.STM32WBxx_DFP.2.0.1",
+      "reason": "Not referenced by any device in this archive's PDSC; not bundled",
+      "sha256": "d86902a7153b53fd3aef0c87a6e922275620fbb93c4da0416cc6a463c617ceeb",
+      "svd": "CMSIS/SVD/STM32WB55_CM0P.svd"
+    },
+    {
+      "pack": "Keil.STM32WBxx_DFP.2.0.1",
+      "reason": "Not referenced by any device in this archive's PDSC; not bundled",
+      "sha256": "bebe5cbde5f6721ada6214bc792979ea1fb93b72e9cbb598b30d0296903d835d",
+      "svd": "CMSIS/SVD/STM32WBxx_CM4.svd"
+    }
+  ]
+}

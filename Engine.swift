@@ -18,12 +18,13 @@ func tclWord(_ s: String) -> String { "\"" + s.reduce("") { $0 + ("\\\"$[]".cont
 
 struct SeriesCatalog {
     static let groups = ["Cseries", "Fseries", "Gseries", "Hseries", "Lseries", "Nseries", "Useries", "Wseries", "MPseries"]
-    static let details = ["Cseries":"C0 / C5", "Fseries":"F0 / F1 / F2 / F3 / F4 / F7", "Gseries":"G0 / G4", "Hseries":"H5 / H7 / H7RS", "Lseries":"L0 / L1 / L4 / L4+ / L5", "Nseries":"N6", "Useries":"U0 / U3 / U5", "Wseries":"WB / WB0 / WBA / WL / WL3 / WL4", "MPseries":"MP1 / MP2"]
+    static let details = ["Cseries":"C0 / C5", "Fseries":"F0 / F1 / F2 / F3 / F4 / F7", "Gseries":"G0 / G4 / G5", "Hseries":"H5 / H7 / H7RS / H7P", "Lseries":"L0 / L1 / L4 / L4+ / L5", "Nseries":"N6", "Useries":"U0 / U3 / U5", "Wseries":"WB / WB0 / WBA / WL / WL3 / WL4", "MPseries":"MP1 / MP2"]
     static let examples = ["Cseries":"STM32C031C6Tx", "Fseries":"STM32F103C8Tx", "Gseries":"STM32G431RBTx", "Hseries":"STM32H743ZITx", "Lseries":"STM32L476RGTx", "Nseries":"STM32N657X0HxQ", "Useries":"STM32U575ZITx", "Wseries":"STM32WB55RGVx", "MPseries":"STM32MP157CAAx"]
     static func prefix(_ group: String) -> String { "STM32" + group.replacingOccurrences(of:"series",with:"") }
     static func group(_ family: String) -> String? { groups.first { family.hasPrefix(prefix($0)) } }
     static func accepts(_ chip:String,_ group:String) -> Bool { groups.contains(group) && chip.range(of:"^STM32[A-Z][A-Za-z0-9]+$",options:.regularExpression) != nil && chip.hasPrefix(prefix(group)) }
     static func installedFamilies(_ cube:String) -> [String] {
+        guard !cube.isEmpty else { return [] }
         let base = URL(fileURLWithPath:cube).deletingLastPathComponent().path
         let xml = [path(base,"db/mcu/families.xml"),path(base,"../Resources/db/mcu/families.xml")].map(read).joined()
         guard let regex = try? NSRegularExpression(pattern:"<Family Name=\"([^\"]+)\"") else { return [] }
@@ -33,8 +34,8 @@ struct SeriesCatalog {
 }
 
 struct Settings: Codable {
-    var root = NSHomeDirectory() + "/Desktop/stm32_project"
-    var series = "Gseries"
+    var root = ""
+    var series = ""
     var project = ""
     var cube = ""
     var cmake = ""
@@ -43,15 +44,15 @@ struct Settings: Codable {
     var hostGCC = "/usr/bin/gcc"
     var ninja = ""
     var openocd = ""
-    var target = "target/stm32g4x.cfg"
+    var target = ""
     var probe = "ST-Link"
     var configuration = "Debug"
     var firmware = ""
     var speed = "1000"
     var toolchain = ""
     var repository = NSHomeDirectory() + "/STM32Cube/Repository"
-    var chipFamily = "STM32G4"
-    var chipModel = "STM32G431RBTx"
+    var chipFamily = ""
+    var chipModel = ""
     var pack = ""
     var binaryAddress = "0x08000000"
     var serialPort = ""
@@ -75,7 +76,11 @@ struct Settings: Codable {
         guard let merged = try? JSONSerialization.data(withJSONObject:values), let settings = try? JSONDecoder().decode(Settings.self,from:merged) else { return Settings() }
         return settings
     }
-    var build: String { outputDirectory.isEmpty ? path(project, "build/STM32Studio-\(configuration)") : outputDirectory }
+    var build: String {
+        if !outputDirectory.isEmpty { return outputDirectory }
+        guard !project.isEmpty else { return "" }
+        return path(project, "build/STM32Studio-\(configuration)")
+    }
     var environment: [String:String] {
         var env = ProcessInfo.processInfo.environment
         let dirs = [compiler, cmake, ninja, openocd].filter{ !$0.isEmpty }.map { URL(fileURLWithPath:$0).deletingLastPathComponent().path }
@@ -124,7 +129,11 @@ struct Settings: Codable {
 
 struct Engine {
     let runner: Runner
+    private func requireProject(_ project: String) throws {
+        guard !project.isEmpty else { throw StudioError("请先选择工程。") }
+    }
     func ioc(_ project: String) throws -> String {
+        try requireProject(project)
         let files = children(project).filter{$0.lowercased().hasSuffix(".ioc")}
         guard files.count == 1 else { throw StudioError(files.isEmpty ? "工程中没有 .ioc 文件。请导入 CubeMX 工程，或先用 CubeMX 保存芯片配置。" : "工程内有多个 .ioc 文件，请保留当前使用的一份配置。") }
         return path(project, files[0])
@@ -134,11 +143,12 @@ struct Engine {
         return read(f).components(separatedBy: .newlines).first{$0.hasPrefix("Mcu.Family=")}?.components(separatedBy:"=").last ?? ""
     }
     func targetFor(_ family: String, model:String = "") -> String? {
-        if model.hasPrefix("STM32H7R") || model.hasPrefix("STM32H7S") { return nil }
+        if model.hasPrefix("STM32H7R") || model.hasPrefix("STM32H7S") || model.hasPrefix("STM32H7P") { return nil }
         let map = ["STM32F0":"stm32f0x", "STM32F1":"stm32f1x", "STM32F2":"stm32f2x", "STM32F3":"stm32f3x", "STM32F4":"stm32f4x", "STM32F7":"stm32f7x", "STM32G0":"stm32g0x", "STM32G4":"stm32g4x", "STM32H5":"stm32h5x", "STM32H7":"stm32h7x", "STM32L0":"stm32l0", "STM32L1":"stm32l1", "STM32L4":"stm32l4x", "STM32L4+":"stm32l4x", "STM32L5":"stm32l5x", "STM32U5":"stm32u5x", "STM32WB":"stm32wbx", "STM32WL":"stm32wlx", "STM32C0":"stm32c0x", "STM32U0":"stm32u0x"]
         return map[family].map { "target/\($0).cfg" }
     }
     func openocdFile(_ name:String,_ s:Settings) -> String? {
+        guard !name.isEmpty else { return nil }
         if name.hasPrefix("/") { return exists(name) ? name : nil }
         let executable = URL(fileURLWithPath:canonical(s.openocd)).deletingLastPathComponent().deletingLastPathComponent().path
         let roots = [ProcessInfo.processInfo.environment["OPENOCD_SCRIPTS"] ?? "",path(executable,"share/openocd/scripts"),"/opt/homebrew/share/openocd/scripts","/usr/local/share/openocd/scripts"].filter{!$0.isEmpty}
@@ -150,6 +160,7 @@ struct Engine {
         if !f.isEmpty && !f.hasPrefix(SeriesCatalog.prefix(s.series)) { throw StudioError("芯片 \(f) 与选择的 \(s.series) 不一致，请切换系列。") }
     }
     func normalizeToolchain(_ project: String) throws {
+        try requireProject(project)
         let file = path(project,"cmake/gcc-arm-none-eabi.cmake")
         guard exists(file) else { return }
         var text = read(file)
@@ -198,6 +209,7 @@ struct Engine {
         runner.log("已同步固件包配置：\(display)\n")
     }
     func backup(_ p: String) throws {
+        try requireProject(p)
         let dest = path(p, ".stm32studio/backups/" + UUID().uuidString)
         try fm.createDirectory(atPath: dest, withIntermediateDirectories: true)
         for name in children(p) where ![".stm32studio", "build", ".git"].contains(name) { try fm.copyItem(atPath:path(p,name),toPath:path(dest,name)) }
@@ -212,6 +224,7 @@ struct Engine {
     }
     func importProject(_ source: String, _ s: Settings) throws -> String {
         guard !s.root.isEmpty, exists(s.root) else { throw StudioError("请先选择已存在的 STM32 总目录。") }
+        try requireProject(source)
         let src = canonical(source), dest = canonical(path(s.root,s.series + "/" + URL(fileURLWithPath:source).lastPathComponent))
         guard exists(path(src,"CMakeLists.txt")) || children(src).contains(where:{$0.hasSuffix(".ioc")}) else { throw StudioError("请选择含 .ioc 或 CMakeLists.txt 的工程根目录。") }
         var check = s; check.project = src; try validateSeries(check)
@@ -223,6 +236,7 @@ struct Engine {
         runner.log("已复制工程到 \(dest)；原工程保留。\n"); return dest
     }
     func organizeUserFiles(_ s: Settings) throws {
+        try requireProject(s.project)
         let src = path(s.project, "Core/Src")
         let inc = path(s.project, "Core/Inc")
         guard exists(src) || exists(inc) else { throw StudioError("当前工程没有 Core/Src 或 Core/Inc，无法整理用户代码。") }
@@ -277,6 +291,7 @@ struct Engine {
         try synchronizeUserCMake(s,prefixes:prefixes)
     }
     func synchronizeUserCMake(_ s:Settings,prefixes:[String]) throws {
+        try requireProject(s.project)
         let top = path(s.project,"CMakeLists.txt")
         var sources:[String] = [], includes:[String] = []
         for prefix in prefixes {
@@ -299,6 +314,7 @@ struct Engine {
         runner.log("已同步用户 C 文件与头文件目录到 CMake。\n")
     }
     func organizeProject(_ s: Settings) throws {
+        try requireProject(s.project)
         let root = s.project
         let nested = path(root,"Projects")
         if !exists(path(root,"CMakeLists.txt")) && !exists(path(nested,"CMakeLists.txt")) {
@@ -342,7 +358,7 @@ struct Engine {
         var configFile = path(s.project,URL(fileURLWithPath:s.project).lastPathComponent + ".ioc")
         if let mcu {
             guard SeriesCatalog.accepts(mcu,s.series) else { throw StudioError("请输入与当前系列一致的完整 MCU 型号，例如 STM32G431RBTx。") }
-            guard let record = DeviceCatalog.load(s.cube).first(where:{$0.name == mcu}) else { throw StudioError("本机 CubeMX 数据库中未找到此型号，请更新 CubeMX 或重新选择 MCU。") }
+            guard let record = DeviceCatalog.cubeRecords(s.cube).first(where:{$0.name == mcu}), !record.package.isEmpty else { throw StudioError("本机 CubeMX 数据库中未找到此型号，请更新 CubeMX 或重新选择 MCU。") }
             let projectName = URL(fileURLWithPath:s.project).lastPathComponent
             let seed = "#MicroXplorer Configuration settings - do not modify\nFile.Version=6\nMcu.Family=\(record.family)\nMcu.Name=\(record.databaseName)\nMcu.Package=\(record.package)\nMcu.UserName=\(record.name)\nMcu.IP0=NVIC\nMcu.IP1=RCC\nMcu.IP2=SYS\nMcu.IPNb=3\nMcu.PinsNb=0\nProjectManager.ProjectName=\(projectName)\nProjectManager.ProjectFileName=\(projectName).ioc\nProjectManager.TargetToolchain=CMake\nProjectManager.UnderRoot=true\nProjectManager.ToolChainLocation=\nProjectManager.MainLocation=Core/Src\nProjectManager.LibraryCopy=1\nProjectManager.CoupleFile=true\nProjectManager.KeepUserCode=true\n"
             try write(seed,configFile)
@@ -383,6 +399,7 @@ struct Engine {
         for tool in ["arm-none-eabi-g++","arm-none-eabi-objcopy","arm-none-eabi-size"] { guard fm.isExecutableFile(atPath:path(dir,tool)) else { throw StudioError("ARM 工具链不完整，缺少 \(tool)。") } }
     }
     func configureBuild(_ s: Settings) throws {
+        try requireProject(s.project)
         let project = canonical(s.project), build = canonical(s.build)
         guard (s.project as NSString).isAbsolutePath, (s.build as NSString).isAbsolutePath,
               build != "/", build != project, !project.hasPrefix(build + "/"),
@@ -427,6 +444,7 @@ struct Engine {
         try write(signature,sigPath)
     }
     func build(_ s: Settings) throws -> [String] {
+        try requireProject(s.project)
         try validateSeries(s)
         guard exists(path(s.project,"CMakeLists.txt")) else { throw StudioError("当前目录缺少 CMakeLists.txt，请先生成 CMake 工程。多核、TrustZone 或 MP 工程请导入对应 Cortex-M 子工程；Linux/设备树不能用 ARM GCC 直接编译。") }
         try validateCompiler(s)
@@ -445,6 +463,7 @@ struct Engine {
         runner.log("已生成 ELF / BIN / HEX：\n" + FirmwareArtifact.outputs(s.build).joined(separator:"\n") + "\n"); return files
     }
     func firmwareFiles(_ p: String) -> [String] {
+        guard !p.isEmpty else { return [] }
         guard let en = fm.enumerator(atPath:p) else { return [] }
         return en.allObjects.compactMap{$0 as? String}.filter{$0.hasSuffix(".elf") && !$0.contains("CMakeFiles/")}.map{path(p,$0)}.sorted()
     }
@@ -453,7 +472,7 @@ struct Engine {
         return [canonical(s.project),canonical(s.compiler),canonical(tc),s.ninja,s.configuration].joined(separator:"\n")
     }
     func flashArguments(_ s: Settings) throws -> [String] {
-        guard SeriesCatalog.accepts(s.chipModel,s.series), s.chipModel.hasPrefix(s.chipFamily) || s.chipFamily == "STM32L4+" else { throw StudioError("请先选择系列和具体 MCU 型号。") }
+        guard !s.chipFamily.isEmpty, SeriesCatalog.accepts(s.chipModel,s.series), s.chipModel.hasPrefix(s.chipFamily) || s.chipFamily == "STM32L4+" else { throw StudioError("请先选择系列和具体 MCU 型号。") }
         guard exists(s.firmware), ["elf","hex","bin"].contains(URL(fileURLWithPath:s.firmware).pathExtension.lowercased()) else { throw StudioError("请选择 ELF、HEX 或 BIN 固件。") }
         guard let speed = Int(s.speed), (50...24000).contains(speed) else { throw StudioError("SWD 速度请填写 50–24000 kHz。") }
         guard s.target.hasSuffix(".cfg"), !s.target.isEmpty else { throw StudioError("请选择匹配芯片的 OpenOCD target .cfg 文件。") }
@@ -469,7 +488,8 @@ struct Engine {
         return " " + s.binaryAddress
     }
     func hardwareArguments(_ s:Settings) throws -> [String] {
-        guard !s.chipModel.isEmpty, let target = openocdFile(s.target,s), let speed = Int(s.speed), (50...24000).contains(speed) else { throw StudioError("请选择 MCU、有效 OpenOCD target 和 SWD 速度。") }
+        guard !s.chipFamily.isEmpty, SeriesCatalog.accepts(s.chipModel,s.series), !s.target.isEmpty,
+              let target = openocdFile(s.target,s), let speed = Int(s.speed), (50...24000).contains(speed) else { throw StudioError("请选择 MCU、有效 OpenOCD target 和 SWD 速度。") }
         if let known = targetFor(s.chipFamily,model:s.chipModel), s.target.hasPrefix("target/"), known != s.target { throw StudioError("芯片配置不匹配，应使用 \(known)。") }
         return ["-f",s.probe == "ST-Link" ? "interface/stlink.cfg" : "interface/cmsis-dap.cfg","-f",target,"-c","adapter speed \(speed)"]
     }
@@ -495,6 +515,7 @@ struct Engine {
         _ = try runner.run(s.openocd,try flashArguments(s),env:s.environment,timeout:180)
     }
     func configureEditor(_ s: Settings) throws {
+        try requireProject(s.project)
         try normalizeToolchain(s.project)
         let folder = path(s.project,".vscode")
         if exists(folder) { let bak = path(s.project,".stm32studio/vscode-" + UUID().uuidString); try fm.createDirectory(atPath:URL(fileURLWithPath:bak).deletingLastPathComponent().path,withIntermediateDirectories:true); try fm.copyItem(atPath:folder,toPath:bak) }

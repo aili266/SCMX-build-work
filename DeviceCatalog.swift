@@ -1,6 +1,12 @@
 import Foundation
 
-struct MCURecord: Hashable { let name: String; let family: String; let package: String; let databaseName:String }
+struct MCURecord: Hashable {
+    let name: String; let family: String; let package: String; let databaseName:String
+    let fromCubeMX: Bool
+    init(name:String,family:String,package:String,databaseName:String,fromCubeMX:Bool = true) {
+        self.name = name; self.family = family; self.package = package; self.databaseName = databaseName; self.fromCubeMX = fromCubeMX
+    }
+}
 final class MCUParser: NSObject, XMLParserDelegate {
     var family = "", records:[MCURecord] = []
     func parser(_ parser:XMLParser,didStartElement elementName:String,namespaceURI:String?,qualifiedName:String?,attributes:[String:String]) {
@@ -25,6 +31,18 @@ struct FirmwarePack {
 }
 struct DeviceCatalog {
     static func load(_ cube:String) -> [MCURecord] {
+        let local = cubeRecords(cube)
+        var records = Dictionary(local.map { ($0.name.uppercased(),$0) },uniquingKeysWith:{first,_ in first})
+        let localNames = Array(records.keys)
+        for device in RegisterCatalog.devices where records[device.name.uppercased()] == nil {
+            let name = device.name.uppercased()
+            if !name.contains("X"), (11...13).contains(name.count), localNames.contains(where:{$0.hasPrefix(name) && $0.count <= name.count + 3}) { continue }
+            records[name] = device
+        }
+        return records.values.sorted { $0.name < $1.name }
+    }
+    static func cubeRecords(_ cube:String) -> [MCURecord] {
+        guard !cube.isEmpty else { return [] }
         let base = URL(fileURLWithPath:cube).deletingLastPathComponent().path
         for p in [path(base,"db/mcu/families.xml"),path(base,"../Resources/db/mcu/families.xml")] {
             if let parser = XMLParser(contentsOf:URL(fileURLWithPath:p)) { let delegate = MCUParser(); parser.delegate = delegate; if parser.parse() { return Array(Set(delegate.records)).sorted{$0.name < $1.name} } }
@@ -32,6 +50,7 @@ struct DeviceCatalog {
         return []
     }
     static func iocValue(_ key:String,_ project:String) -> String {
+        guard !project.isEmpty else { return "" }
         guard let file = children(project).first(where:{$0.hasSuffix(".ioc")}) else { return "" }
         return read(path(project,file)).components(separatedBy:.newlines).first{$0.hasPrefix(key + "=")}?.dropFirst(key.count+1).trimmingCharacters(in:.whitespacesAndNewlines) ?? ""
     }

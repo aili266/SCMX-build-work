@@ -23,6 +23,7 @@ struct FirmwareArtifact: Equatable {
         return FirmwareArtifact(file:file,modified:date,size:size,sha256:hash.finalize().map{String(format:"%02x",$0)}.joined())
     }
     static func outputs(_ directory:String) -> [String] {
+        guard !directory.isEmpty else { return [] }
         guard let entries = fm.enumerator(atPath:directory) else{return []}
         return entries.allObjects.compactMap{$0 as? String}.filter{["elf","hex","bin"].contains(URL(fileURLWithPath:$0).pathExtension.lowercased()) && !$0.contains("CMakeFiles/") && !$0.hasPrefix(".")}.map{path(directory,$0)}.sorted()
     }

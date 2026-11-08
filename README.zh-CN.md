@@ -30,6 +30,8 @@ open dist/SCMX-build-work.app
 
 ## 第一次使用
 
+新安装的工程、芯片和固件选择都为空。寄存器定义随 App 提供，选型号就能离线查看。更新 App 会保留你自己保存的选择。
+
 | 步骤 | 点哪里、选什么 | 成功看到什么 | 失败先查什么 |
 | --- | --- | --- | --- |
 | 1. 选工具 | “工具与固件包”→“自动查找并检查” | 工具路径和版本 | 是否选了可执行文件 |
@@ -63,7 +65,7 @@ Homebrew 可能要求 Command Line Tools 来安装软件包。这不是打包 Ap
 
 - **备份：**填地址和长度，读取到新 BIN 文件。先核对芯片内存范围，不覆盖已有文件。
 - **串口：**选端口和波特率后连接，可发文字或 HEX 字节。接收只保留最近 64 KiB。串口下载前先断开终端。
-- **调试、寄存器：**先连接并暂停芯片。寄存器表主要覆盖 F1/G4 常用外设；部分寄存器读取会清标志。
+- **调试、寄存器：**选择型号即可离线查看内置厂商寄存器定义，不必先建工程或连接开发板。读取实际值时再连接并暂停匹配的芯片；部分读取会清除标志。
 - **整理工程目录：**先备份。只有 `.ioc`、尚未生成构建文件的工程会被拒绝，需先点“生成工程”。
 - **整理代码：**先备份，再执行。遇到同名文件或目录冲突会中止；先检查报错路径，不要直接覆盖。
 - **擦除：**OpenOCD 只擦 Bank 0；CubeProgrammer 使用 `-e all` 全部擦除。看清确认框再执行。
@@ -75,7 +77,7 @@ UART、USB DFU 需要芯片支持对应的系统下载方式，不能任意接�
 
 ## 测试记录
 
-本地编译、日志与进程检查已通过，工程测试通过 137 项断言，中英文各有 386 条文字资源。实物烧录仍需逐块板验证；完整记录见[本地验证结果](docs/VALIDATION.md)。
+本地编译、日志与进程检查已通过，工程测试通过 137 项断言，中英文文字资源的键保持一致。实物烧录仍需逐块板验证；完整记录见[本地验证结果](docs/VALIDATION.md)。
 
 ```sh
 dist/SCMX-build-work.app/Contents/MacOS/STM32Studio --programming-test
@@ -94,11 +96,13 @@ App 内部可执行文件仍叫 `STM32Studio`。回归使用临时工程和虚�
 | LogView.swift | 日志显示和重复错误测试 |
 | Programming.swift / ProgrammingView.swift | 烧录、参数检查、备份和连接配置 |
 | SerialTerminal.swift | 串口连接和收发 |
-| DebugSession.swift / RegisterCatalog.swift | 调试和寄存器查询 |
+| DebugSession.swift / RegisterCatalog.swift / RegisterDatabase.swift | 调试、寄存器查询和离线定义库 |
 | DeviceCatalog.swift / FirmwareArtifact.swift | 芯片与固件包列表、固件文件检查 |
 | Tests.swift / ProgrammingTests.swift | 自动测试 |
 
-设置保存在 `~/Library/Application Support/SCMXBuildWork/settings.json`。首次启动读取旧 App 设置作为默认值，之后不覆盖旧设置。连接配置导出不含工具、工程、固件、串口路径或设备序列号；换 Mac 后需要重新选择。
+设置保存在 `~/Library/Application Support/SCMXBuildWork/settings.json`，不在 App 包或源码仓库里。新安装的工程目录、工程、芯片和固件选择均为空，不自动读取旧 App 的配置，也不自动选择目录中的第一个工程。更新 App 会保留你自己已保存的选择。需要回到空白状态时，在“工具与固件包”点击“清空工程与芯片选择”；它不删除工程文件，并保留工具路径、语言和侧栏顺序。连接配置导出不含工具、工程、固件、串口路径或设备序列号。
+
+寄存器数据来自厂商 SVD 和官方设备包的型号映射，按各自许可分发，详见[第三方声明](THIRD_PARTY_NOTICES.md)。多个型号可能共用同一份定义；可选外设和封装引脚仍需对照芯片手册，寄存器库覆盖不等于开发板实测。
 
 ## 帮助与许可
 

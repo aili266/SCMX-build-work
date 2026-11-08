@@ -174,6 +174,7 @@ func runProgrammingTests() throws {
         do { try action() } catch { print("PASS: " + label); return }; throw StudioError("Expected rejection: " + label)
     }
     var s = Settings(); s.programmerBackend = "CubeProgrammer"; s.cubeProgrammer = "/missing/cube"
+    s.series = "Gseries"; s.chipFamily = "STM32G4"; s.chipModel = "STM32G431RBTx"; s.target = "target/stm32g4x.cfg"
     s.firmware = path(folder,"固件 $[file].bin"); try write("binary",s.firmware)
     let engine = Engine(runner:Runner(log:{_ in}))
     let flash = try engine.programmingCommand(.flash,s)
