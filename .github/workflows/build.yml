@@ -1,0 +1,17 @@
+name: macOS Preview
+on: [push, pull_request, workflow_dispatch]
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build native app
+        run: zsh build.command
+      - name: Regression tests without hardware
+        run: dist/SCMX-build-work.app/Contents/MacOS/STM32Studio --programming-test
+      - name: Package preview
+        run: ditto -c -k --sequesterRsrc --keepParent dist/SCMX-build-work.app dist/SCMX-build-work.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SCMX-build-work
+          path: dist/SCMX-build-work.zip
