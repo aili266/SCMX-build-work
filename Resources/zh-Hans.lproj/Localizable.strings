@@ -5,7 +5,7 @@
 "Code Organization" = "代码整理";
 "Projects & Build" = "工程与编译";
 "Tools & Firmware Packs" = "工具与固件包";
-"Run Log" = "每一步，都有结果";
+"Run Log" = "运行日志";
 "Ready · Select a project to begin" = "就绪 · 选择工程后开始";
 "No firmware selected" = "尚未选择固件";
 "Firmware path no longer exists. Refresh and select an output." = "原固件路径已不存在，请刷新并选择输出";
