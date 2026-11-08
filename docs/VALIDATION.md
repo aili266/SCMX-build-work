@@ -32,7 +32,11 @@
 
 未在本轮进行真实开发板烧录、擦除、Flash 读取、选项字节读取或 GDB 在线调试；没有将协议参数测试冒充硬件兼容性测试。STM32CubeProgrammer CLI 未在本机找到，其真实返回行为仍需安装后验证。
 
-本轮 GitHub Actions 的 macOS 15 干净环境构建及无硬件测试已通过，包括新增的空白启动、设置和全部寄存器数据检查：[运行记录](https://github.com/aili266/SCMX-build-work/actions/runs/42529794896)。源码提交为 `bbeee416d1b992e57cee3db50250c9d8b0e06eaa`，运行总耗时 1 分 9 秒，生成了约 7.16 MB 的[私有构建包](https://github.com/aili266/SCMX-build-work/actions/runs/42529794896/artifacts/13636593576)。原先的 macOS 14 环境已被 GitHub 停用，现已更换；不影响 App 的 macOS 13 最低运行要求。
+Beta 的 GitHub Actions macOS 15 干净环境构建及无硬件测试已通过，包括空白启动、隐藏入口、设置和全部寄存器数据检查：[运行记录](https://github.com/aili266/SCMX-build-work/actions/runs/42531466594)。源码提交为 `2db444f4f992cfefccefd0dfc1f10722d260f4e1`，运行总耗时 1 分 3 秒。原先的 macOS 14 环境已被 GitHub 停用，现已更换；不影响 App 的 macOS 13 最低运行要求。
+
+[v0.3.0-beta.1 私有发布页](https://github.com/aili266/SCMX-build-work/releases/tag/v0.3.0-beta.1)已提供约 7.41 MB 的 Apple Silicon App 压缩包及 `SHA256SUMS.txt`。经用户确认后，一次性[发布任务](https://github.com/aili266/SCMX-build-work/actions/runs/42532374371)从上述固定提交重新构建并测试，再核对两份附件的大小和服务端 SHA-256，成功后才发布。仓库可见性未修改；发布后已从默认分支移除一次性工作流。
+
+已发布 App 压缩包 SHA-256：`7c7e40aad654325acc05724b75dc6d0445e485a8963ea5e95195cc96b46a9cdd`。该文件由 GitHub runner 构建，本机独立构建包的校验值可能不同，请以同一发布页附带的校验文件为准。
 
 这次没有为缺少授权的 3 份 MP1 定义打包数据。厂商未声明有效读权限的寄存器保持“未知”并禁止读取。多核或多安全域型号目前只提供定义浏览，尚未接入调试目标路由，不开放实时寄存器读取。
 
