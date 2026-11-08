@@ -9,6 +9,12 @@ jobs:
         run: zsh build.command
       - name: Regression tests without hardware
         run: dist/SCMX-build-work.app/Contents/MacOS/STM32Studio --programming-test
+      - name: Verify bundled language resources
+        run: dist/SCMX-build-work.app/Contents/MacOS/STM32Studio --localization-test
+      - name: Verify process execution safeguards
+        run: dist/SCMX-build-work.app/Contents/MacOS/STM32Studio --runner-test
+      - name: Verify bounded log delivery
+        run: dist/SCMX-build-work.app/Contents/MacOS/STM32Studio --log-test
       - name: Package preview
         run: ditto -c -k --sequesterRsrc --keepParent dist/SCMX-build-work.app dist/SCMX-build-work.zip
       - uses: actions/upload-artifact@v4
