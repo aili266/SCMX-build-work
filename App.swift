@@ -268,7 +268,7 @@ struct MainView: View {
             Divider()
             VStack(spacing:0) {
                 HStack {
-                    VStack(alignment:.leading,spacing:5) { Text(s.tab == 0 ? "WebCode · STM32 烧录" : s.tab == 1 ? "工程与编译" : s.tab == 2 ? "工具与固件包" : s.tab == 4 ? "在线调试" : s.tab == 5 ? "寄存器助手" : s.tab == 6 ? "代码整理" : "每一步，都有结果").font(.system(size:25,weight:.bold)); Text(s.tab == 0 ? "选择型号与固件，连接开发板，然后烧录。" : s.tab == 1 ? "附加功能 · CubeMX 生成与 ARM GCC 编译" : s.tab == 2 ? "管理本机工具、MCU 数据库与统一固件包目录。" : s.tab == 4 ? "断点、单步、变量与内存 · GDB + OpenOCD" : s.tab == 5 ? "GPIO、USART、I2C、SPI 常用寄存器只读查看" : s.tab == 6 ? "按用户代码前缀整理 C / H 文件到对应目录。" : "实时输出与错误原因，便于检查和保存。").foregroundStyle(.secondary) }
+                    VStack(alignment:.leading,spacing:5) { Text(s.tab == 0 ? "SCMX-build work · STM32 烧录" : s.tab == 1 ? "工程与编译" : s.tab == 2 ? "工具与固件包" : s.tab == 4 ? "在线调试" : s.tab == 5 ? "寄存器助手" : s.tab == 6 ? "代码整理" : "每一步，都有结果").font(.system(size:25,weight:.bold)); Text(s.tab == 0 ? "选择型号与固件，连接开发板，然后烧录。" : s.tab == 1 ? "附加功能 · CubeMX 生成与 ARM GCC 编译" : s.tab == 2 ? "管理本机工具、MCU 数据库与统一固件包目录。" : s.tab == 4 ? "断点、单步、变量与内存 · GDB + OpenOCD" : s.tab == 5 ? "GPIO、USART、I2C、SPI 常用寄存器只读查看" : s.tab == 6 ? "按用户代码前缀整理 C / H 文件到对应目录。" : "实时输出与错误原因，便于检查和保存。").foregroundStyle(.secondary) }
                     Spacer()
                     if s.busy { ProgressView().controlSize(.small); Button("停止") { s.stop() } }
                 }.padding(24)
@@ -417,11 +417,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     var window: NSWindow?
     let studio = Studio()
     func applicationDidFinishLaunching(_ notification: Notification) {
-        let menu = NSMenu(), item = NSMenuItem(), sub = NSMenu(); sub.addItem(withTitle:"关于 STM32 工程配置",action:#selector(NSApplication.orderFrontStandardAboutPanel(_:)),keyEquivalent:""); sub.addItem(.separator()); sub.addItem(withTitle:"退出 STM32 工程配置",action:#selector(NSApplication.terminate(_:)),keyEquivalent:"q"); item.submenu = sub; menu.addItem(item)
+        let menu = NSMenu(), item = NSMenuItem(), sub = NSMenu(); sub.addItem(withTitle:"关于 SCMX-build work",action:#selector(NSApplication.orderFrontStandardAboutPanel(_:)),keyEquivalent:""); sub.addItem(.separator()); sub.addItem(withTitle:"退出 SCMX-build work",action:#selector(NSApplication.terminate(_:)),keyEquivalent:"q"); item.submenu = sub; menu.addItem(item)
         let editItem = NSMenuItem(title:"编辑",action:nil,keyEquivalent:""), edit = NSMenu(title:"编辑"); for (name,selector,key) in [("剪切","cut:","x"),("复制","copy:","c"),("粘贴","paste:","v"),("全选","selectAll:","a")] { edit.addItem(withTitle:name,action:Selector(selector),keyEquivalent:key) }; editItem.submenu = edit; menu.addItem(editItem); NSApp.mainMenu = menu
         if let i = CommandLine.arguments.firstIndex(of:"--smoke-tab"), CommandLine.arguments.count > i+1 { studio.tab = Int(CommandLine.arguments[i+1]) ?? 0 }
         let w = NSWindow(contentRect:NSRect(x:0,y:0,width:1140,height:850),styleMask:[.titled,.closable,.miniaturizable,.resizable],backing:.buffered,defer:false)
-        w.title = "WebCode · STM32 烧录软件 · 预览版"; w.minSize = NSSize(width:1040,height:760); w.contentView = NSHostingView(rootView:MainView(s:studio)); w.center(); w.makeKeyAndOrderFront(nil); window = w
+        w.title = "SCMX-build work · STM32 烧录软件 · 预览版"; w.minSize = NSSize(width:1040,height:760); w.contentView = NSHostingView(rootView:MainView(s:studio)); w.center(); w.makeKeyAndOrderFront(nil); window = w
         NSApp.activate(ignoringOtherApps:true)
         if let i = CommandLine.arguments.firstIndex(of:"--smoke-test"), CommandLine.arguments.count > i + 1 {
             let output = CommandLine.arguments[i+1]

@@ -1,7 +1,7 @@
 #!/bin/zsh
 set -euo pipefail
 cd "${0:A:h}"
-DEST="${1:-$PWD/dist/WebCode.app}"
+DEST="${1:-$PWD/dist/SCMX-build-work.app}"
 mkdir -p "$DEST/Contents/MacOS" "$DEST/Contents/Resources"
 xcrun swiftc -swift-version 5 -O -target "$(uname -m)-apple-macosx13.0" Engine.swift DeviceCatalog.swift FirmwareArtifact.swift DebugSession.swift RegisterCatalog.swift Programming.swift ProgrammingView.swift SerialTerminal.swift App.swift Tests.swift ProgrammingTests.swift main.swift -o "$DEST/Contents/MacOS/STM32Studio" -framework SwiftUI -framework AppKit
 ICON_TMP="$(mktemp -d)"
@@ -25,8 +25,8 @@ cat > "$DEST/Contents/Info.plist" <<'PLIST'
 <plist version="1.0"><dict>
 <key>CFBundleExecutable</key><string>STM32Studio</string>
 <key>CFBundleIdentifier</key><string>local.stm32.workbench.preview</string>
-<key>CFBundleName</key><string>WebCode</string>
-<key>CFBundleDisplayName</key><string>WebCode</string>
+<key>CFBundleName</key><string>SCMX-build-work</string>
+<key>CFBundleDisplayName</key><string>SCMX-build-work</string>
 <key>CFBundleIconFile</key><string>STM32Burn</string>
 <key>CFBundleIconName</key><string>STM32Burn</string>
 <key>CFBundlePackageType</key><string>APPL</string>

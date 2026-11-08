@@ -1,8 +1,8 @@
 # Changelog
 
-## 0.3.0 — WebCode 私有审核预览版
+## 0.3.0 — SCMX-build-work 私有审核预览版
 
-- 基于原 STM32 macOS 工具整理源码和模块说明，采用 WebCode 名称与 MIT License。
+- 基于原 STM32 macOS 工具整理源码和模块说明，采用 SCMX-build-work 名称与 MIT License。
 - 保留 OpenOCD、CMake、CubeMX、GDB、寄存器助手、工程整理与侧栏排序。
 - 新增 CubeProgrammer SWD / UART / USB DFU 接入、设备列表、序列号、复位下连接。
 - 新增 Flash 备份、备份长度检查、只读选项字节、连接配置导入导出与命令预览。

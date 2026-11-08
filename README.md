@@ -1,12 +1,14 @@
-# WebCode
+# SCMX-build work
 
 一个专门面向 MacBook 的 STM32 烧录软件，使用 SwiftUI / AppKit 构建原生 macOS 界面。将工程生成与编译、SWD / UART / USB DFU 下载、调试、寄存器查看和代码整理放在一个应用中。
 
 当前为私有仓库审核预览版，尚未发布公开 GitHub Release。支持范围取决于本机后端、芯片和探针，不能将型号列表等同于硬件实测清单。
 
+本项目采用 AI 辅助开发；功能、修复和兼容性以代码审查及实际测试结果为准。
+
 ## 目标与特点
 
-WebCode 面向希望在 MacBook 上完成 STM32 开发的学习者和开发者，减少手动配置工具路径、CMake、固件文件与调试器的重复操作。它沿用 CubeMX、ARM GCC、OpenOCD、GDB 和 CubeProgrammer 的能力，用中文原生界面衔接这些工具。
+SCMX-build work 面向希望在 MacBook 上完成 STM32 开发的学习者和开发者，减少手动配置工具路径、CMake、固件文件与调试器的重复操作。它沿用 CubeMX、ARM GCC、OpenOCD、GDB 和 CubeProgrammer 的能力，用中文原生界面衔接这些工具。
 
 工程生成、编译结果与固件文件可以关联；烧录前显示摘要，支持连接配置复用；失败时保留命令与输出。它适用于单设备开发、学习和调试，暂不定位为量产烧录系统。
 
@@ -18,7 +20,7 @@ WebCode 面向希望在 MacBook 上完成 STM32 开发的学习者和开发者�
 xcode-select --install
 brew install cmake ninja open-ocd
 zsh build.command
-open dist/WebCode.app
+open dist/SCMX-build-work.app
 ```
 
 ARM GCC / GDB 请另外安装与宿主架构匹配的 `arm-none-eabi` 工具链。CubeMX 和 CubeProgrammer 从 ST 官方下载安装，应用不附带或重新分发这些软件。
@@ -47,7 +49,7 @@ ARM GCC / GDB 请另外安装与宿主架构匹配的 `arm-none-eabi` 工具链�
 
 ```sh
 zsh build.command
-dist/WebCode.app/Contents/MacOS/STM32Studio --programming-test
+dist/SCMX-build-work.app/Contents/MacOS/STM32Studio --programming-test
 ```
 
 上述测试不连接开发板：检查各接口命令、地址校验、固件变化保护、配置迁移、虚拟串口实际收发，以及代码整理后真实 CMake 构建。
