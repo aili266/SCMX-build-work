@@ -1,4 +1,4 @@
-# SCMX-build-work 故障排查与支持
+# SCMX-build work 故障排查与支持
 
 ## 运行不了 App
 
@@ -22,11 +22,11 @@ UART 检查真实串口、ROM Bootloader 支持的引脚、BOOT 配置及电平�
 
 打开工程根目录，而不是已移动前的路径。确认 CMakeLists.txt、工具链与源文件实际存在。代码整理后查看 `cmake/stm32studio-user-files.cmake`。复杂自定义引用可能需要人工修改，原文件备份位于 `.stm32studio/backups/`。
 
-固定使用同一构建目录切换 Debug/Release 时，SCMX-build-work 会重新配置。换项目或工具链后若 CMake 缓存不兼容，使用重置构建缓存功能；旧输出会移走保留。
+固定使用同一构建目录切换 Debug/Release 时，SCMX-build work 会重新配置。换项目或工具链后若 CMake 缓存不兼容，使用重置构建缓存功能；旧输出会移走保留。
 
 ## 提交问题
 
-在当前私有仓库 Issues 提供：macOS 版本、Apple Silicon/Intel、SCMX-build-work 版本、芯片完整型号、板卡型号、探针及固件版本、后端版本、接口、操作步骤、期望结果与实际结果。
+在当前私有仓库 Issues 提供：macOS 版本、Apple Silicon/Intel、SCMX-build work 版本、芯片完整型号、板卡型号、探针及固件版本、后端版本、接口、操作步骤、期望结果与实际结果。
 
 可以附脱敏后的日志。请移除账号、真实用户名路径、设备序列号、访问令牌和不便公开的工程代码。不要上传未经允许的商业固件。
 
