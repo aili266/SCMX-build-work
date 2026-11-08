@@ -1,0 +1,105 @@
+name: Private Beta Upload Once
+
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/private-beta-once.yml]
+
+permissions: {}
+
+concurrency:
+  group: private-beta-0.3.0-1
+  cancel-in-progress: false
+
+env:
+  BETA_TAG: v0.3.0-beta.1
+  SOURCE_SHA: 2db444f4f992cfefccefd0dfc1f10722d260f4e1
+  APP_ARCHIVE: SCMX-build-work-v0.3.0-beta.1-macos-arm64.zip
+
+jobs:
+  build:
+    if: github.repository == 'aili266/SCMX-build-work' && github.ref == 'refs/heads/main'
+    runs-on: macos-15
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 2db444f4f992cfefccefd0dfc1f10722d260f4e1
+          persist-credentials: false
+      - name: Verify source and architecture
+        run: |
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          test "$(uname -m)" = arm64
+      - name: Build beta app
+        run: zsh build.command
+      - name: Run portable regression tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          for test in settings register register-data programming runner log localization; do
+            dist/SCMX-build-work.app/Contents/MacOS/STM32Studio "--${test}-test"
+          done
+          TEST_HOME="$(mktemp -d)"
+          env CFFIXED_USER_HOME="$TEST_HOME" SCMX_TEST_HOME="$TEST_HOME" dist/SCMX-build-work.app/Contents/MacOS/STM32Studio --startup-test
+          codesign --verify --deep --strict dist/SCMX-build-work.app
+      - name: Package and checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release
+          ditto -c -k --sequesterRsrc --keepParent dist/SCMX-build-work.app "release/$APP_ARCHIVE"
+          cp "docs/releases/$BETA_TAG.md" release/RELEASE_NOTES.md
+          printf '\nBuilt and tested in [GitHub Actions](%s/%s/actions/runs/%s).\n' "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" >> release/RELEASE_NOTES.md
+          cd release
+          shasum -a 256 "$APP_ARCHIVE" > SHA256SUMS.txt
+          shasum -a 256 -c SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: private-beta-upload
+          path: release/
+          retention-days: 7
+
+  publish:
+    needs: build
+    if: github.repository == 'aili266/SCMX-build-work' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: private-beta-upload
+          path: release
+      - name: Upload verified assets to the private draft and publish beta
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: aili266/SCMX-build-work
+        run: |
+          set -euo pipefail
+          cd release
+          sha256sum -c SHA256SUMS.txt
+          test "$(gh api "repos/$GH_REPO" --jq '.private')" = true
+          test "$(gh api "repos/$GH_REPO/commits/$SOURCE_SHA" --jq '.sha')" = "$SOURCE_SHA"
+          gh api "repos/$GH_REPO/git/matching-refs/tags/$BETA_TAG" > refs.json
+          jq -e --arg ref "refs/tags/$BETA_TAG" --arg sha "$SOURCE_SHA" 'map(select(.ref == $ref)) | length == 0 or (length == 1 and .[0].object.type == "commit" and .[0].object.sha == $sha)' refs.json
+          gh api "repos/$GH_REPO/releases?per_page=100" > releases.json
+          RELEASE_ID="$(jq -er --arg tag "$BETA_TAG" '[.[] | select(.tag_name == $tag)] | if length == 1 and .[0].draft == true then .[0].id else error("Expected exactly one existing private beta draft") end' releases.json)"
+          jq -e --argjson id "$RELEASE_ID" '.[] | select(.id == $id) | .assets | length == 0' releases.json
+          jq -n --arg tag "$BETA_TAG" --arg sha "$SOURCE_SHA" --rawfile body RELEASE_NOTES.md '{tag_name:$tag,target_commitish:$sha,name:("SCMX-build work " + $tag),body:$body,draft:true,prerelease:true,make_latest:"false"}' > draft.json
+          gh api --method PATCH "repos/$GH_REPO/releases/$RELEASE_ID" --input draft.json --jq '.id'
+          gh release upload "$BETA_TAG" "$APP_ARCHIVE" SHA256SUMS.txt --repo "$GH_REPO"
+          gh api "repos/$GH_REPO/releases/$RELEASE_ID/assets" > assets.json
+          for file in "$APP_ARCHIVE" SHA256SUMS.txt; do
+            digest="sha256:$(sha256sum "$file" | cut -d ' ' -f 1)"
+            size="$(stat -c %s "$file")"
+            jq -e --arg name "$file" --arg digest "$digest" --argjson size "$size" '[.[] | select(.name == $name and .state == "uploaded" and .size == $size and .digest == $digest)] | length == 1' assets.json
+          done
+          test "$(jq length assets.json)" = 2
+          test "$(gh api "repos/$GH_REPO" --jq '.private')" = true
+          gh api --method PATCH "repos/$GH_REPO/releases/$RELEASE_ID" -F draft=false -F prerelease=true -f make_latest=false --jq '.html_url'
+          gh api "repos/$GH_REPO/releases/$RELEASE_ID" --jq '{url:.html_url,tag:.tag_name,draft,prerelease,assets:[.assets[] | {name,size,digest,state}]}'
