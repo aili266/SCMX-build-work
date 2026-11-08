@@ -10,13 +10,13 @@ SCMX-build work 是独立的 macOS App，用于编译和烧录 STM32，也能使
 
 ### 已有构建好的 App
 
-仓库成员可以在[私有 v0.3.0-beta.1 发布页](https://github.com/aili266/SCMX-build-work/releases/tag/v0.3.0-beta.1)下载 Apple Silicon 版本。当前没有公开下载。
+稳定版 v0.3.0 面向 macOS 13+ / Apple Silicon（arm64），内部版本为 0.3.0，构建编号为 5。仓库成员可访问[私有 v0.3.0 发布页](https://github.com/aili266/SCMX-build-work/releases/tag/v0.3.0)，变更见[英文发布说明](docs/releases/v0.3.0.md)。仓库保持私有，没有公开下载；原有 [v0.3.0-beta.1 发布页](https://github.com/aili266/SCMX-build-work/releases/tag/v0.3.0-beta.1)保留。
 
 1. 在 Finder 打开 `SCMX-build-work.app`。需要 macOS 13 或更新版本。
 2. 在左侧底部或 Tools 设置中选择简体中文。
 3. 看到主窗口后，按下一节选择工具。
 
-运行打包 App **不需要 Xcode、Swift 编译器或 Apple Command Line Tools**。Apple Silicon 已做本机验证，Intel 尚未验证。当前包只有本地临时签名，没有 Developer ID 签名或 Apple 公证；不要为打开它全局关闭系统保护。
+运行打包 App **不需要 Xcode、Swift 编译器或 Apple Command Line Tools**。Apple Silicon 已有本机验证记录；本次发布不提供 Intel 包，Intel 源码构建尚未验证。当前包只有 ad-hoc 本地临时签名，没有 Developer ID 签名或 Apple 公证；不要为打开它全局关闭系统保护。
 
 ### 从源码构建 App
 
@@ -32,7 +32,7 @@ open dist/SCMX-build-work.app
 
 ## 第一次使用
 
-新安装的工程、芯片和固件选择都为空。寄存器定义随 App 提供，选型号就能离线查看。更新 App 会保留你自己保存的选择。
+新安装的工程目录、工程、芯片和固件选择都为空。寄存器定义随 App 提供，选型号就能离线查看。更新 App 会保留你自己保存的设置。
 
 | 步骤 | 点哪里、选什么 | 成功看到什么 | 失败先查什么 |
 | --- | --- | --- | --- |
@@ -40,6 +40,8 @@ open dist/SCMX-build-work.app
 | 2. 导入工程 | 选总目录、芯片系列，再导入工程 | 工程列表和路径 | 总目录和 `.ioc` 位置 |
 | 3. 编译 | 选工程→“生成工程”→“编译工程” | 生成的固件文件 | 错误提示、最早的编译错误 |
 | 4. 烧录 | “烧录工作台”→选芯片、探针、固件→连接检测→烧录并校验 | 连接信息、校验结果 | 供电、接线、目标配置 |
+
+选中工程后，也可以在烧录页操作行点击带锤子图标的“编译工程”，使用与“工程与编译”相同的构建流程。未选工程、正在执行其他操作或调试连接未断开时，按钮不可用。编译成功后，App 会选用识别到的输出作为固件；无法确定输出时，会提示你选择。编译不会自动烧录。
 
 已有 ELF、HEX 或 BIN 固件时，可以跳过导入和编译。完整步骤见[使用说明](docs/USER_GUIDE.md)。芯片列表不是实测支持清单。
 
@@ -76,11 +78,11 @@ UART、USB DFU 需要芯片支持对应的系统下载方式，不能任意接�
 
 暂不提供量产批量烧录、J-Link 专用界面、外部 Flash loader、SWO/RTT 或安全配置写入。多核、TrustZone、MP/Linux 和复杂自定义 CMake 工程需要单独检查。
 
-本次 Beta 隐藏“代码整理”入口，源码和测试保留，待补齐操作预览、撤销及复杂工程处理后再开放。工程导入、CMake 配置、编译和“整理工程目录”照常保留。
+v0.3.0 继续隐藏“代码整理”入口及其侧栏排序项，源码和回归测试保留。工程导入、CMake 配置、编译和“整理工程目录”照常保留。
 
 ## 测试记录
 
-本地编译、日志与进程检查已通过，工程测试通过 137 项断言，中英文文字资源的键保持一致。实物烧录仍需逐块板验证；完整记录见[本地验证结果](docs/VALIDATION.md)。
+v0.3.0/build 5 的本地测试已通过：工程 137 项、设置 57 项、隔离用户目录启动 29 项、进程 48 项、日志 16 项、寄存器样例 80 项，以及全部 215 份内置寄存器数据。中英文各 426 条非空文字资源，键名一致；原 `--self-test` 也已通过。窄窗口截图和实际 ARM 固件工程编译仍在进行，尚无稳定版 CI 通过记录；实物烧录仍需逐块板验证。详见[本地验证结果](docs/VALIDATION.md)。
 
 ```sh
 dist/SCMX-build-work.app/Contents/MacOS/STM32Studio --programming-test

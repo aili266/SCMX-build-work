@@ -1,4 +1,4 @@
-name: macOS Preview
+name: macOS Build
 on: [push, pull_request, workflow_dispatch]
 jobs:
   build:
@@ -25,7 +25,7 @@ jobs:
         run: dist/SCMX-build-work.app/Contents/MacOS/STM32Studio --runner-test
       - name: Verify bounded log delivery
         run: dist/SCMX-build-work.app/Contents/MacOS/STM32Studio --log-test
-      - name: Package preview
+      - name: Package app
         run: ditto -c -k --sequesterRsrc --keepParent dist/SCMX-build-work.app dist/SCMX-build-work.zip
       - uses: actions/upload-artifact@v4
         with:

@@ -10,7 +10,7 @@ SCMX-build work is a macOS app for building and programming STM32 firmware. It a
 
 The app runs tools installed on your Mac. It is intended for learning and working with one device at a time, not production programming.
 
-- Generate and build CubeMX projects, then select ELF, HEX, or BIN artifacts for programming.
+- Generate and build CubeMX projects, including from the Flashing page's Build Project shortcut, then use ELF, HEX, or BIN artifacts for programming.
 - Use OpenOCD with ST-Link or CMSIS-DAP, or STM32CubeProgrammer with ST-Link SWD, UART, or USB DFU.
 - Review commands and firmware details before programming; reuse connection profiles without exporting local tool or project paths.
 - Read Flash backups with length checks and overwrite protection; inspect option bytes without exposing security-changing controls.
@@ -21,13 +21,15 @@ The app runs tools installed on your Mac. It is intended for learning and workin
 
 ### Open a built app
 
-Open `SCMX-build-work.app` in Finder. You need macOS 13 or later and a build for your Mac's architecture. You do not need Xcode, Apple Command Line Tools, or a Swift compiler to run the app. Install the STM32 tools for the operations you plan to use.
+Open `SCMX-build-work.app` in Finder. The stable v0.3.0 release is for macOS 13 or later on Apple Silicon (arm64); its internal app version is 0.3.0, build 5. You do not need Xcode, Apple Command Line Tools, or a Swift compiler to run the app. Install the STM32 tools for the operations you plan to use.
 
 A new installation has no selected workspace, project, MCU, or firmware. Register definitions are bundled and can be browsed offline without a project or a connected board. Existing users keep their own saved selections after an update.
 
-Repository collaborators can download the Apple Silicon build from the [private v0.3.0-beta.1 release](https://github.com/aili266/SCMX-build-work/releases/tag/v0.3.0-beta.1). There is no public app download yet. You can also build the app from source using the steps below.
+Repository collaborators can use the [private v0.3.0 release page](https://github.com/aili266/SCMX-build-work/releases/tag/v0.3.0); see the [English release notes](docs/releases/v0.3.0.md). The repository remains private, and there is no public app download. The earlier [v0.3.0-beta.1 release](https://github.com/aili266/SCMX-build-work/releases/tag/v0.3.0-beta.1) remains available. You can also build the app from source using the steps below.
 
-The experimental Code Organization module is hidden in this beta. Its implementation and regression tests remain in the repository. Project import, CMake configuration, and project-directory normalization remain available.
+The release is ad-hoc signed, not Developer ID signed or Apple notarized. Do not disable macOS security globally to open it.
+
+The experimental Code Organization module remains hidden from the sidebar and reorder dialog in v0.3.0. Its implementation and regression tests remain in the repository. Project import, CMake configuration, and project-directory normalization remain available.
 
 ### Build the app from source
 
@@ -39,7 +41,7 @@ zsh build.command
 open dist/SCMX-build-work.app
 ```
 
-The build targets the current Mac architecture: arm64 on Apple Silicon or x86_64 on Intel. Only the Apple Silicon build has been locally validated; Intel is unverified. The preview uses an ad-hoc signature, not Developer ID signing or Apple notarization. Building from source does not require disabling macOS security globally.
+The build targets the current Mac architecture: arm64 on Apple Silicon or x86_64 on Intel. Only the Apple Silicon build has been locally validated; Intel is unverified and no Intel binary is provided in this release. Source builds use an ad-hoc signature, not Developer ID signing or Apple notarization. Building from source does not require disabling macOS security globally.
 
 ### Install STM32 tools
 
@@ -61,7 +63,7 @@ The following describes integration scope, not a certified board list. See the [
 
 | Area | Current scope | Validation boundary |
 | --- | --- | --- |
-| macOS / architecture | macOS 13+; native host-architecture build | arm64 locally validated; x86_64 unverified |
+| macOS / architecture | macOS 13+; Apple Silicon release | arm64 locally validated; Intel source builds unverified, no Intel release binary |
 | OpenOCD / SWD | ST-Link and CMSIS-DAP; programming, verification, reset, Bank 0 erase | Requires a supported target `.cfg`; no physical-board regression in this review |
 | CubeProgrammer / SWD | ST-Link; device listing, programming, verification, full-chip erase, option-byte display | Command tests passed; actual CLI and target behavior remain unverified |
 | CubeProgrammer / UART / USB DFU | ROM bootloader command integration | Requires chip-specific bootloader support; hardware testing pending |
@@ -69,7 +71,7 @@ The following describes integration scope, not a certified board list. See the [
 | Serial terminal | 8N1, text/HEX TX/RX, CRLF, counters, receive-data export | Real I/O tested with system pseudoterminals, not a physical UART adapter |
 | Debugging / registers | OpenOCD + GDB; bundled, model-matched vendor SVD register definitions | Definition browsing is offline; reading live values requires a matching halted target. Shared vendor profiles can include optional blocks; this is not hardware certification |
 | Projects / CMake | CubeMX, CMake, ARM GCC, VS Code configuration and project-directory normalization | Temporary CMake regressions passed; custom layouts need review. Experimental user-source organization is hidden |
-| Automated checks | Programming and CMake checks, process safeguards, log delivery, localization, original self-test | Local checks and macOS 15 GitHub CI passed; see the validation record. Self-test requires local CubeMX/F1/G4 packages and runs locally only |
+| Automated checks | Programming and CMake checks, process safeguards, log delivery, localization, original self-test | v0.3.0/build 5 local tests passed; stable CI, narrow-window UI checks, and an actual ARM fixture build are not yet recorded as complete. Beta CI is recorded separately. Self-test requires local CubeMX/F1/G4 packages and runs locally only |
 
 The MCU catalog combines bundled device-pack mappings with the local CubeMX database when available. The offline library contains 3,822 model/base-name entries across 30 families and 215 register profiles. A listed MCU is not necessarily tested or supported by the selected programming backend. Creating a project still requires that MCU's metadata and firmware package in CubeMX.
 
@@ -77,13 +79,15 @@ The MCU catalog combines bundled device-pack mappings with the local CubeMX data
 
 | Module | Typical use | Guide |
 | --- | --- | --- |
-| Programming workbench | Select the chip and connection, test it, then choose firmware and confirm | [Programming](docs/USER_GUIDE.en.md#5-program-firmware) |
+| Programming workbench | Build the selected project or choose existing firmware, then check the connection and confirm | [Programming](docs/USER_GUIDE.en.md#5-program-firmware) |
 | Backup / option bytes | Save a BIN backup; read option bytes over CubeProgrammer SWD | [Backup and option bytes](docs/USER_GUIDE.en.md#6-read-a-backup-or-option-bytes) |
 | Serial terminal | Connect a port, send text or HEX bytes, save received data | [Serial terminal](docs/USER_GUIDE.en.md#7-use-the-serial-terminal) |
 | Debugging | Load an ELF with debug symbols, pause, step, and inspect variables | [Debugging](docs/USER_GUIDE.en.md#8-debug-a-program) |
 | Register assistant | Select an MCU and browse its definitions; connect and pause to read live values | [Register assistant](docs/USER_GUIDE.en.md#9-read-registers) |
 | Projects and builds | Import or create a project, generate with CubeMX, and build | [Projects and builds](docs/USER_GUIDE.en.md#4-generate-and-build) |
 | Tools, profiles and logs | Choose tools, reuse connection settings, reorder modules, save logs | [Tools, profiles and logs](docs/USER_GUIDE.en.md#11-profiles-logs-and-help) |
+
+Build Project is available in both Projects & Build and the Flashing page action row, using the same build workflow. It requires a selected project and is disabled during another operation or an active debug session. After a successful build, the app selects the identified output as firmware or asks you to choose if the result is ambiguous. Building does not flash the device.
 
 ## Tests
 
@@ -98,20 +102,20 @@ dist/SCMX-build-work.app/Contents/MacOS/STM32Studio --log-test
 dist/SCMX-build-work.app/Contents/MacOS/STM32Studio --localization-test
 ```
 
-The bundle is named `SCMX-build-work.app`; its internal executable remains `STM32Studio`. The programming suite passed 137 assertions covering backend commands, addresses, firmware changes, profiles, serial I/O, CMake toolchain changes, and directory organization. Process and log tests also passed, including cancellation, timeouts, split UTF-8 characters, and repeated errors. Tests use temporary directories and do not program or erase connected boards. The process test compiles a small C fixture and needs Command Line Tools; normal app use does not.
+The bundle is named `SCMX-build-work.app`; its internal executable remains `STM32Studio`. The local v0.3.0/build 5 programming suite passed 137 assertions covering backend commands, addresses, firmware changes, profiles, serial I/O, CMake toolchain changes, and directory organization. The process suite passed 48 checks and the log suite passed 16, including cancellation, timeouts, split UTF-8 characters, and repeated errors. Tests use temporary directories and do not program or erase connected boards. The process test compiles a small C fixture and needs Command Line Tools; normal app use does not.
 
-Localization checks compare the English and Simplified Chinese key sets. They confirm string-key coverage, not exhaustive visual validation of every UI state.
+Localization checks passed with 426 nonempty entries per language and matching English and Simplified Chinese key sets. They confirm string-key coverage, not exhaustive visual validation of every UI state.
 
-The settings tests cover empty selections and preservation of saved paths. Register tests check device matching, payload integrity, access permissions, and read widths; the data test validates all bundled profiles. The isolated-home startup test is also included in the GitHub Actions workflow.
+Settings tests passed 57 assertions, and isolated-home startup tests passed 29. They cover empty selections and preservation of saved paths. Register fixture tests passed 80 checks for device matching, payload integrity, access permissions, and read widths; the data test passed for all 215 bundled profiles. The isolated-home startup test is also included in the GitHub Actions workflow.
 
-The original `--self-test` also passed in the recorded local environment. It checks the local CubeMX database and installed F1/G4 firmware packages, so it is not a prerequisite for a clean CI environment. Local success does not establish a successful GitHub Actions run.
+The original `--self-test` also passed locally on build 5. It checks the local CubeMX database and installed F1/G4 firmware packages, so it is not a prerequisite for a clean CI environment. Local success does not establish a successful GitHub Actions run. Stable CI, narrow-window UI checks, and an actual ARM fixture build are not yet recorded as complete; see the [validation record](docs/VALIDATION.md).
 
 ## Limits and Safety
 
 - No physical-board programming, erase, Flash read, option-byte read, or live GDB debugging was performed in this review. STM32CubeProgrammer CLI was not found locally; its real responses still need testing.
 - OpenOCD erase affects **Bank 0 only**; CubeProgrammer erase uses **`-e all`**. Confirm the displayed scope before proceeding. Reads and verification may reset or halt the target; failures may leave it halted.
 - UART and DFU are not supported by every STM32. Check the exact device's bootloader documentation and wiring. A serial terminal and programmer cannot share the same port.
-- J-Link-specific integration, external Flash loaders, batch/multi-probe programming, SWO/RTT, CAN/I2C/SPI bootloaders, RDP changes, OTP programming, and security provisioning are outside this preview's scope.
+- J-Link-specific integration, external Flash loaders, batch/multi-probe programming, SWO/RTT, CAN/I2C/SPI bootloaders, RDP changes, OTP programming, and security provisioning are outside this release's scope.
 - Dual-bank, multicore, TrustZone, and MP/Linux workflows are not certified. Complex custom CMake expressions and nonstandard project layouts may require manual changes.
 - Debugging uses local port `3333`; close competing probe sessions. Register reads can have hardware side effects even though the UI provides no writes.
 - The log window and its text export keep only the latest 150,000 to 180,000 UTF-16 units. Command return values keep at most the last 4 MiB. Save relevant errors before older output is discarded.
@@ -137,6 +141,7 @@ Settings are saved separately at `~/Library/Application Support/SCMXBuildWork/se
 
 - [English User Guide](docs/USER_GUIDE.en.md) / [中文使用说明](docs/USER_GUIDE.md)
 - [English Troubleshooting and Support](docs/SUPPORT.en.md) / [中文故障排查](docs/SUPPORT.md)
+- [v0.3.0 release notes](docs/releases/v0.3.0.md) (English)
 - [Feature matrix and outstanding work](docs/FEATURE_MATRIX.md), [code review and residual risks](docs/BUG_REVIEW.md), [local validation](docs/VALIDATION.md), and [changelog](CHANGELOG.md) (Chinese)
 
 Repository collaborators can report issues in the [private repository issue tracker](https://github.com/aili266/SCMX-build-work/issues). Include environment, tool versions, exact device, reproduction steps, and redacted logs. There is no public support service, response-time commitment, or comprehensive hardware certification.

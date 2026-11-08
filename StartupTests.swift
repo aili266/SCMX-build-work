@@ -35,7 +35,21 @@ func runStartupTests() throws {
     try expect(fresh.settings.firmware.isEmpty && fresh.settings.debugELF.isEmpty && fresh.settings.build.isEmpty,"First launch has no firmware or implicit build path")
     try expect(fresh.projects.isEmpty && fresh.artifact == nil,"First launch has no discovered project or firmware artifact")
     try expect(!exists(fresh.settings.repository),"First launch does not create a firmware repository")
-    try expect(!navigationCatalog.contains(where:{$0.id == 6}) && !fresh.navigationItems.contains(where:{$0.id == 6}),"Beta sidebar and reorder defaults exclude experimental code organization")
+    try expect(!fresh.canBuildProject,"Build shortcut is disabled before a project is selected")
+    let beforeBuild = try Data(contentsOf:URL(fileURLWithPath:savedPath)), beforeLog = fresh.log
+    fresh.compileCurrent()
+    try expect(fresh.failed && !fresh.busy && fresh.log == beforeLog,"Building without a project is rejected before starting tools or queuing logs")
+    try expect(try Data(contentsOf:URL(fileURLWithPath:savedPath)) == beforeBuild,"Rejected empty build never rewrites saved settings")
+    fresh.settings.project = " \n "
+    try expect(!fresh.canBuildProject,"Whitespace is not a selected project")
+    fresh.settings.project = project
+    try expect(fresh.canBuildProject,"Selected project enables the shared build action")
+    fresh.busy = true
+    try expect(!fresh.canBuildProject,"Busy operations disable both build shortcuts")
+    fresh.busy = false; fresh.debug.active = true
+    try expect(!fresh.canBuildProject,"Active debugging disables both build shortcuts")
+    fresh.debug.active = false; fresh.settings.project = ""
+    try expect(!navigationCatalog.contains(where:{$0.id == 6}) && !fresh.navigationItems.contains(where:{$0.id == 6}),"Sidebar and reorder defaults exclude experimental code organization")
     fresh.settings.navigationOrder = [6,3,5,0,4,1,2]
     try expect(fresh.navigationItems.map(\.id) == [3,5,0,4,1,2],"Legacy sidebar order cannot restore the hidden experimental module")
     try expect(fresh.settings.navigationOrder == [6,3,5,0,4,1,2],"Filtering hidden navigation leaves saved custom order intact")

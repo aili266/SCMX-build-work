@@ -8,7 +8,7 @@ struct NavigationItem: Identifiable, Hashable {
     let icon: String
 }
 
-// Code organization is retained in source but not exposed in this beta.
+// Code organization is retained in source but not exposed in this release.
 let navigationCatalog = [
     NavigationItem(id:0,title:"Flashing",icon:"cable.connector"),
     NavigationItem(id:4,title:"Debug",icon:"ant"),
@@ -54,6 +54,7 @@ final class Studio: ObservableObject {
         Timer.scheduledTimer(withTimeInterval:3,repeats:true) { [weak self] _ in self?.scanSerial(); self?.refreshArtifact(); self?.debug.checkELF() }
     }
     var families:[String] { Array(Set(records.map(\.family))).sorted() }
+    var canBuildProject: Bool { !settings.project.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty && !busy && !debug.active }
     var canGenerateModel: Bool { records.contains { $0.name == settings.chipModel && $0.fromCubeMX && !$0.package.isEmpty } }
     var matchingModels:[MCURecord] { records.filter { $0.family == settings.chipFamily && (modelSearch.isEmpty || $0.name.localizedCaseInsensitiveContains(modelSearch) || $0.package.localizedCaseInsensitiveContains(modelSearch)) } }
     var menuModels:[MCURecord] {
@@ -138,6 +139,9 @@ final class Studio: ObservableObject {
         outputChoices = options; outputSheet = true
     }
     func compileCurrent() {
+        guard !settings.project.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty else {
+            failed = true; status = L10n.string("No project selected"); return
+        }
         perform("Build Project") { e,c in
             let elf = try e.build(c)
             let outputs = FirmwareArtifact.outputs(c.build)
@@ -372,7 +376,7 @@ struct MainView: View {
         }
         Card(title:"02  Generate & Build",icon:"hammer") {
             HStack { Picker("Build Configuration",selection:$s.settings.configuration) { Text("Debug").tag("Debug"); Text("Release").tag("Release") }.frame(width:240).onChange(of:s.settings.configuration){_ in s.selectProject()}; Spacer(); Text("CMake + ARM GCC").font(.caption).foregroundStyle(.secondary) }
-            HStack(spacing:10) { Button("Open CubeMX") { s.openCube() }; Button("Organize Project") { s.perform("Organize Project") { e,c in try e.organizeProject(c); return nil } }; Button("Generate Project") { s.generateCurrent() }; Button("Build Project") { s.compileCurrent() }.buttonStyle(.borderedProminent); Spacer(); Button("Open Folder") { NSWorkspace.shared.open(URL(fileURLWithPath:s.settings.project)) } }.disabled(s.settings.project.isEmpty)
+            HStack(spacing:10) { Button("Open CubeMX") { s.openCube() }; Button("Organize Project") { s.perform("Organize Project") { e,c in try e.organizeProject(c); return nil } }; Button("Generate Project") { s.generateCurrent() }; BuildProjectButton(studio:s).buttonStyle(.borderedProminent); Spacer(); Button("Open Folder") { NSWorkspace.shared.open(URL(fileURLWithPath:s.settings.project)) } }.disabled(s.settings.project.isEmpty)
             Text("Generate from an existing .ioc; a backup is created before regeneration. Check pins, clocks, and firmware packs for new projects.").font(.caption).foregroundStyle(.secondary)
         }
         Card(title:"03  Build Results",icon:"checkmark.seal") {
@@ -520,8 +524,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             studio.status = L10n.string("Failed: ") + L10n.string("Build Project")
             studio.tab = 3
         }
-        let w = NSWindow(contentRect:NSRect(x:0,y:0,width:1140,height:850),styleMask:[.titled,.closable,.miniaturizable,.resizable],backing:.buffered,defer:false)
-        w.title = L10n.string("SCMX-build work · Preview"); w.minSize = NSSize(width:1040,height:760); w.contentView = NSHostingView(rootView:MainView(s:studio)); w.center(); w.makeKeyAndOrderFront(nil); window = w
+        var width = 1140
+        if CommandLine.arguments.contains("--smoke-test"), let i = CommandLine.arguments.firstIndex(of:"--smoke-width"), CommandLine.arguments.count > i+1 {
+            width = max(1040,min(1600,Int(CommandLine.arguments[i+1]) ?? 1140))
+        }
+        let w = NSWindow(contentRect:NSRect(x:0,y:0,width:CGFloat(width),height:850),styleMask:[.titled,.closable,.miniaturizable,.resizable],backing:.buffered,defer:false)
+        w.title = L10n.string("SCMX-build work · STM32 Workbench"); w.minSize = NSSize(width:1040,height:760); w.contentView = NSHostingView(rootView:MainView(s:studio)); w.center(); w.makeKeyAndOrderFront(nil); window = w
         NSApp.activate(ignoringOtherApps:true)
         if logStress {
             // Exercise clear, truncation, and incremental updates after the native view mounts.
@@ -541,7 +549,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             DispatchQueue.main.asyncAfter(deadline:.now() + 2) {
                 var report = "interfaceLanguage=\(LocalizationSettings.shared.language.rawValue)\nlocalizedFlashing=\(L10n.string("Flashing"))\nwindowVisible=\(w.isVisible)\nwindowTitle=\(w.title)\ncontentView=\(String(describing:type(of:w.contentView!)))\nsize=\(w.contentView!.bounds.size)\nprojects=\(self.studio.projects.count)\n"
                 report += "workspace=\(self.studio.settings.root)\nseries=\(self.studio.settings.series)\nproject=\(self.studio.settings.project)\nchipFamily=\(self.studio.settings.chipFamily)\nchipModel=\(self.studio.settings.chipModel)\nfirmware=\(self.studio.settings.firmware)\nregisterDevices=\(RegisterCatalog.devices.count)\nregisterProfiles=\(RegisterCatalog.allProfiles.count)\n"
-                report += "navigationIDs=\(self.studio.navigationItems.map(\.id))\nselectedTab=\(self.studio.tab)\n"
+                report += "navigationIDs=\(self.studio.navigationItems.map(\.id))\nselectedTab=\(self.studio.tab)\nbuildEnabled=\(self.studio.canBuildProject)\n"
                 if let snapshot = try? RegisterCatalog.snapshot(family:self.studio.settings.chipFamily,model:self.studio.settings.chipModel) {
                     report += "registerProfile=\(snapshot.profile.name)\nregisterCount=\(snapshot.registers.count)\n"
                 }
@@ -560,7 +568,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func updateLocalizedChrome() {
         let menu = NSMenu(), item = NSMenuItem(), sub = NSMenu(); sub.addItem(withTitle:L10n.string("About SCMX-build work"),action:#selector(NSApplication.orderFrontStandardAboutPanel(_:)),keyEquivalent:""); sub.addItem(.separator()); sub.addItem(withTitle:L10n.string("Quit SCMX-build work"),action:#selector(NSApplication.terminate(_:)),keyEquivalent:"q"); item.submenu = sub; menu.addItem(item)
         let editItem = NSMenuItem(title:L10n.string("Edit"),action:nil,keyEquivalent:""), edit = NSMenu(title:L10n.string("Edit")); for (name,selector,key) in [("Cut","cut:","x"),("Copy","copy:","c"),("Paste","paste:","v"),("Select All","selectAll:","a")] { edit.addItem(withTitle:L10n.string(name),action:Selector(selector),keyEquivalent:key) }; editItem.submenu = edit; menu.addItem(editItem); NSApp.mainMenu = menu
-        window?.title = L10n.string("SCMX-build work · Preview")
+        window?.title = L10n.string("SCMX-build work · STM32 Workbench")
     }
     func applicationShouldTerminateAfterLastWindowClosed(_ sender:NSApplication)->Bool { true }
     func applicationShouldTerminate(_ sender:NSApplication)->NSApplication.TerminateReply { if studio.busy { let a = NSAlert(); a.messageText = L10n.string("Operation in Progress"); a.informativeText = L10n.string("Wait for the current operation to finish, or stop it before quitting."); a.runModal(); return .terminateCancel }; studio.debug.disconnect(); studio.save(); return .terminateNow }

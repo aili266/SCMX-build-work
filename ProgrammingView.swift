@@ -1,6 +1,17 @@
 import SwiftUI
 import AppKit
 
+struct BuildProjectButton: View {
+    @ObservedObject var studio: Studio
+    @ObservedObject private var debug: DebugSession
+    init(studio:Studio) { self.studio = studio; self.debug = studio.debug }
+    var body: some View {
+        Button { studio.compileCurrent() } label: { Label("Build Project",systemImage:"hammer") }
+            .disabled(!studio.canBuildProject)
+            .help(LocalizedStringKey(studio.settings.project.isEmpty ? "Select a project in Projects & Build before compiling." : "Build Project"))
+    }
+}
+
 struct ProgrammerControls: View {
     @ObservedObject var studio: Studio
     @State private var erase = false
@@ -60,14 +71,17 @@ struct ProgrammerControls: View {
                 Spacer(); Button("Refresh File") { studio.refreshArtifact(force:true) }; Button("Build Outputs…") { studio.chooseBuildOutput() }
             }
             if let artifact = studio.artifact { Text(artifact.summary).font(.system(size:10,design:.monospaced)).textSelection(.enabled) }
-            HStack {
-                Button("Test Connection") { run(.connect,"Test Connection") }
-                Button("Flash and Verify") { studio.prepareFlash() }.buttonStyle(.borderedProminent).disabled(studio.settings.firmware.isEmpty)
-                Button("Verify Only") { run(.verify,"Verify Firmware") }.disabled(studio.settings.firmware.isEmpty)
-                Button("Reset and Run") { run(.reset,"Reset and Run") }
-                Button("Erase…",role:.destructive) { erase = true }
-                Spacer()
-                Button { showCommand() } label: { Image(systemName:"text.magnifyingglass") }.help("Preview Flash Command")
+            ViewThatFits(in:.horizontal) {
+                HStack {
+                    buildAndFlashActions
+                    resetAndEraseActions
+                    Spacer(minLength:0)
+                    commandPreviewButton
+                }
+                VStack(alignment:.leading,spacing:8) {
+                    HStack { buildAndFlashActions; Spacer(minLength:0) }
+                    HStack { resetAndEraseActions; Spacer(minLength:0); commandPreviewButton }
+                }
             }
             Divider()
             HStack {
@@ -89,6 +103,23 @@ struct ProgrammerControls: View {
                 Button("Close") { previewVisible = false }
             }.padding(24).frame(width:680,height:300)
         }
+    }
+    private var buildAndFlashActions: some View {
+        HStack {
+            BuildProjectButton(studio:studio)
+            Button("Test Connection") { run(.connect,"Test Connection") }
+            Button("Flash and Verify") { studio.prepareFlash() }.buttonStyle(.borderedProminent).disabled(studio.settings.firmware.isEmpty)
+            Button("Verify Only") { run(.verify,"Verify Firmware") }.disabled(studio.settings.firmware.isEmpty)
+        }.fixedSize(horizontal:true,vertical:false)
+    }
+    private var resetAndEraseActions: some View {
+        HStack {
+            Button("Reset and Run") { run(.reset,"Reset and Run") }
+            Button("Erase…",role:.destructive) { erase = true }
+        }.fixedSize(horizontal:true,vertical:false)
+    }
+    private var commandPreviewButton: some View {
+        Button { showCommand() } label: { Image(systemName:"text.magnifyingglass") }.help("Preview Flash Command")
     }
     private func run(_ action:ProgrammingAction,_ title:String) { studio.perform(title) { e,s in try e.program(action,s); return nil } }
     private func showCommand() {

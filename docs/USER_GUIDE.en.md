@@ -2,19 +2,23 @@
 
 [English overview](../README.md) | [中文首页](../README.zh-CN.md) | [中文使用说明](USER_GUIDE.md) | [Troubleshooting](SUPPORT.en.md)
 
+For stable v0.3.0 (internal app version 0.3.0, build 5), macOS 13+ on Apple Silicon. See the [release notes](releases/v0.3.0.md).
+
 ## 1. First-Time Setup
 
-1. Open `SCMX-build-work.app` in Finder. Use macOS 13 or later.
+1. Open `SCMX-build-work.app` in Finder. Use macOS 13 or later on Apple Silicon.
 2. The default language is English. Choose English or Simplified Chinese at the bottom of the left sidebar or in Tools settings. The choice is saved.
 3. Once the main window opens, select the tools below.
 
 A fresh installation leaves the workspace, project, MCU, and firmware unselected. Tool discovery does not select a board or import the former app's history. Updating the app preserves this app's own saved settings.
 
+To clear saved workspace and device selections, use Tools & Firmware Packs > Clear Workspace and Device Selection. This does not delete project files. Tool paths, language, and sidebar order are kept.
+
 To browse register definitions, open Register Assistant and select an MCU. No CubeMX installation, project, or connected board is needed.
 
 This is a standalone native app, not an Xcode extension. Running the packaged app needs no Xcode, Swift compiler, or Apple Command Line Tools. Only building the app from Swift source needs Command Line Tools, not the full Xcode IDE. See [source-build instructions](../README.md#build-the-app-from-source).
 
-If the app will not open, read the system message and [support guide](SUPPORT.en.md). The preview is not notarized; do not disable system protections globally. Apple Silicon is locally validated; Intel is not. There is no public download. A local build exists for private review; a review artifact may be provided after CI validation.
+If the app will not open, read the system message and [support guide](SUPPORT.en.md). The app is ad-hoc signed, not Developer ID signed or Apple notarized; do not disable system protections globally. This release provides only an Apple Silicon build; Intel source builds are unverified. The [release page](https://github.com/aili266/SCMX-build-work/releases/tag/v0.3.0) is for repository collaborators. The repository remains private, with no public download.
 
 Already have an ELF, HEX, or BIN file? Select the programming tools, then skip to section 5.
 
@@ -55,8 +59,10 @@ Choose STM32F1, STM32G4, or another family directly. The app handles internal Fs
 ## 4. Generate and Build
 
 1. Select the project and click Generate Project.
-2. After generation finishes, click Build Project.
-3. Select the resulting ELF, HEX, or BIN. If several files appear, confirm which one belongs to your target.
+2. After generation finishes, click Build Project in Projects & Build or in the Flashing page action row. Both use the same build workflow.
+3. After a successful build, the app selects the identified output as firmware. If the output is ambiguous, choose the correct ELF, HEX, or BIN when prompted.
+
+The hammer-icon Build Project button requires a selected project. It is disabled while another operation is running or a debug session is active. Building does not flash the device; check the selected firmware before programming.
 
 **Success:** the build completes and produces firmware files.
 
@@ -69,6 +75,8 @@ Multicore, TrustZone, and MP/Linux projects need separate configuration. In VS C
 <a id="2-programming-workbench"></a>
 
 ## 5. Program Firmware
+
+To rebuild without leaving the Flashing page, use Build Project in its action row after selecting a project. Review the selected build output before Flash and Verify. On narrower windows, the actions wrap into two rows.
 
 ### ST-Link or CMSIS-DAP with OpenOCD
 
@@ -164,7 +172,7 @@ There are no register-write controls, but reads can still clear flags or change 
 
 ## 10. Organize Source Files
 
-This experimental module is hidden in v0.3.0-beta.1, including the sidebar reorder dialog. Its implementation and tests remain in the source repository. Operation previews, undo, and complex project layouts need further work before the UI is re-enabled.
+This experimental module remains hidden in v0.3.0, including the sidebar reorder dialog. Its implementation and regression tests remain in the source repository. Operation previews, undo, and complex project layouts need further work before the UI is re-enabled.
 
 Project import, CMake configuration, builds, and Organize Project remain available in Projects & Build. Existing user files and previously generated CMake fragments are not removed by this update.
 
@@ -179,8 +187,8 @@ Project import, CMake configuration, builds, and Organize Project remain availab
 
 Settings are separate from the former app at `~/Library/Application Support/SCMXBuildWork/settings.json`.
 
-The local programming suite passed 137 assertions. Process, log, language-resource checks, and the original self-test also passed. English and Chinese string keys match. These results do not certify boards, remote CI, or every visual UI state.
+Local v0.3.0/build 5 tests passed, including 137 programming assertions, 29 isolated-home startup checks, and matching English and Chinese resource keys with 426 entries per language. Settings, process, log, register fixture and data checks, and the original self-test also passed. Narrow-window UI snapshots and an actual ARM fixture build are still in progress; no stable CI or physical-board validation is claimed. See the [validation record](VALIDATION.md) for counts and remaining checks.
 
 The log view and text export retain the latest 150,000 to 180,000 UTF-16 units, not the full history. Save important errors before older output is discarded. Serial ports are selected manually; the app refreshes the list every three seconds without opening each port to search for a device.
 
-This is a private review build. Start with project copies. See [support](SUPPORT.en.md) or the [validation record](VALIDATION.md) (Chinese).
+This stable release remains private to repository collaborators. Start with project copies. See [support](SUPPORT.en.md) or the [validation record](VALIDATION.md) (Chinese).

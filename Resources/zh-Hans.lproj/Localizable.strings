@@ -145,7 +145,8 @@
 "Select All" = "全选";
 "Operation in Progress" = "操作仍在进行";
 "Wait for the current operation to finish, or stop it before quitting." = "请等待当前操作完成，或点击停止后再退出。";
-"SCMX-build work · Preview" = "SCMX-build work · STM32 烧录软件 · 预览版";
+"SCMX-build work · STM32 Workbench" = "SCMX-build work · STM32 烧录软件";
+"Select a project in Projects & Build before compiling." = "请先在“工程与编译”中选择工程。";
 "Backend" = "后端";
 "Transport" = "接口";
 "Speed (kHz)" = "速度 kHz";

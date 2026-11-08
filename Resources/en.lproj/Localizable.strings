@@ -145,7 +145,8 @@
 "Select All" = "Select All";
 "Operation in Progress" = "Operation in Progress";
 "Wait for the current operation to finish, or stop it before quitting." = "Wait for the current operation to finish, or stop it before quitting.";
-"SCMX-build work · Preview" = "SCMX-build work · Preview";
+"SCMX-build work · STM32 Workbench" = "SCMX-build work · STM32 Workbench";
+"Select a project in Projects & Build before compiling." = "Select a project in Projects & Build before compiling.";
 "Backend" = "Backend";
 "Transport" = "Transport";
 "Speed (kHz)" = "Speed (kHz)";
