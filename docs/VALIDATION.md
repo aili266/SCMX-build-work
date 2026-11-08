@@ -31,7 +31,7 @@
 
 未在本轮进行真实开发板烧录、擦除、Flash 读取、选项字节读取或 GDB 在线调试；没有将协议参数测试冒充硬件兼容性测试。STM32CubeProgrammer CLI 未在本机找到，其真实返回行为仍需安装后验证。
 
-上一版 GitHub Actions 的 macOS 15 自动构建及无硬件测试已通过，生成了私有下载包：[运行记录](https://github.com/aili266/SCMX-build-work/actions/runs/42469959739)。本轮新增的空白启动和寄存器检查已加入工作流，远端结果需在上传后单独确认。原先的 macOS 14 环境已被 GitHub 停用，现已更换；不影响 App 的 macOS 13 最低运行要求。
+本轮 GitHub Actions 的 macOS 15 干净环境构建及无硬件测试已通过，包括新增的空白启动、设置和全部寄存器数据检查：[运行记录](https://github.com/aili266/SCMX-build-work/actions/runs/42529794896)。源码提交为 `bbeee416d1b992e57cee3db50250c9d8b0e06eaa`，运行总耗时 1 分 9 秒，生成了约 7.16 MB 的[私有构建包](https://github.com/aili266/SCMX-build-work/actions/runs/42529794896/artifacts/13636593576)。原先的 macOS 14 环境已被 GitHub 停用，现已更换；不影响 App 的 macOS 13 最低运行要求。
 
 这次没有为缺少授权的 3 份 MP1 定义打包数据。厂商未声明有效读权限的寄存器保持“未知”并禁止读取。多核或多安全域型号目前只提供定义浏览，尚未接入调试目标路由，不开放实时寄存器读取。
 
