@@ -1,0 +1,14 @@
+.DS_Store
+dist/
+review/
+*.log
+*.dSYM/
+.build/
+settings.json
+*.mx
+*.bin
+*.elf
+*.hex
+*.dmg
+*.zip
+
